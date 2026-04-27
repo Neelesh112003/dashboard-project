@@ -107,7 +107,7 @@ export default function AdminList({ admins, onDelete }) {
             style={{ backgroundColor: "#fff" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-5" style={{ backgroundColor: "#3a3c44" }}>
+            <div className="flex items-center justify-between px-6 py-5" style={{ backgroundColor: "#44a83e" }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full text-white font-bold text-lg"
                   style={{ backgroundColor: "rgba(245,245,245,0.15)" }}>
