@@ -5,13 +5,20 @@ export function ThemeToggleButton() {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    setDarkMode(document.documentElement.classList.contains("dark"));
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+    } else {
+      document.documentElement.classList.remove("dark");
+      setDarkMode(false);
+    }
   }, []);
 
   const toggleTheme = () => {
-    const html = document.documentElement;
-    html.classList.toggle("dark");
-    setDarkMode(html.classList.contains("dark"));
+    const isDark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+    setDarkMode(isDark);
   };
 
   return (

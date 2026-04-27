@@ -74,7 +74,7 @@ export default function MonthlyTarget() {
             <path
               d={`M 20 110 A 80 80 0 0 1 180 110`}
               fill="none"
-              stroke="#465FFF"
+              stroke="#44a83e"
               strokeWidth="6"
               strokeLinecap="round"
               strokeDasharray={circumference}

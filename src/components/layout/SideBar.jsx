@@ -1,10 +1,19 @@
 import {
   LayoutDashboard,
-  LogIn,
-  Settings,
+  CircleUserRound,
+  Building2,
+  ShoppingCart,
+  Package,
+  ClipboardList,
+  Boxes,
+  Warehouse,
+  Factory,
+  Cog,
+  FileText,
+  ShieldCheck,
   BookUser,
   X,
-  CircleUserRound
+  
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
@@ -14,19 +23,64 @@ export default function Sidebar() {
 
   const sidebarItems = [
     {
-      name: "Overview",
+      name: "Dashboard",
       href: "/",
       icon: LayoutDashboard,
     },
     {
-      name: "Login",
-      href: "/login",
-      icon: LogIn,
+      name: "Manage Admins",
+      href: "/manage-admins",
+      icon: CircleUserRound,
     },
     {
-      name: "Settings",
-      href: "/settings",
-      icon: Settings,
+      name: "Manage Teams and Departments",
+      href: "/manage-teams",
+      icon: Building2,
+    },
+    {
+      name: "Purchase Orders",
+      href: "/purchase-orders",
+      icon: ShoppingCart,
+    },
+    {
+      name: "Product List",
+      href: "/product-list",
+      icon: Package,
+    },
+    {
+      name: "BOM",
+      href: "/bom",
+      icon: ClipboardList,
+    },
+    {
+      name: "Inventory",
+      href: "/inventory",
+      icon: Boxes,
+    },
+    {
+      name: "Godowns",
+      href: "/godowns",
+      icon: Warehouse,
+    },
+    {
+      name: "Assembly Line",
+      href: "/assembly-line",
+      icon: Factory,
+    },
+    {
+      name: "Production",
+      href: "/production",
+      icon: Cog,
+    },
+    {
+      name: "Invoicing",
+      href: "/invoicing",
+      icon: FileText,
+    },
+    {
+      name: "Quality Check",
+      href: "/quality-check",
+      icon: ShieldCheck,
     },
   ];
 
@@ -51,13 +105,13 @@ export default function Sidebar() {
             className="flex items-center gap-3 px-2 py-2"
             onClick={closeMobileSidebar}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-b from-[#465fff] to-[#3b4fd8] shadow-[0_10px_30px_rgba(70,95,255,0.25)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-b from-[#44a83e] to-[#257620] shadow-[0_10px_30px_rgba(70,95,255,0.25)]">
               <BookUser className="h-5 w-5 text-white" />
             </div>
 
             {isExpanded && (
               <span className="text-[25px] font-semibold tracking-tight text-slate-900 dark:text-white">
-                Dashboard
+                Admin Panel
               </span>
             )}
           </NavLink>
@@ -73,7 +127,7 @@ export default function Sidebar() {
 
         <hr className="my-6 border-slate-300 dark:border-[#162033]" />
 
-        <nav className="flex-1 px-4">
+        <nav className="flex-1 overflow-y-auto px-4">
           <ul className="space-y-2">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
@@ -86,7 +140,7 @@ export default function Sidebar() {
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
                         isActive
-                          ? "bg-blue-100 text-blue-800 dark:bg-[#151f46] dark:text-[#7c8cff]"
+                          ? "bg-[#ccf0ca] text-[#1a5c18] dark:bg-[#1e3a5f] dark:text-[#6fcf69]"
                           : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#11182b]"
                       } ${!isExpanded ? "justify-center" : ""}`
                     }
@@ -103,7 +157,7 @@ export default function Sidebar() {
         <div className="border-t border-slate-300 px-4 pt-6 dark:border-[#162033]">
           <div className={`flex items-center ${isExpanded ? "gap-3" : "justify-center"}`}>
             <CircleUserRound 
-              className="h-10 w-10 rounded-full object-cover"
+              className="h-10 w-10 rounded-full object-cover bg-[#2d6e2a] text-white"
             />
             {isExpanded && (
               <div>

@@ -94,7 +94,7 @@ export default function MonthlySalesChart() {
                       )}
 
                       <div
-                        className="w-3 rounded-t-md bg-[#465fff] transition-opacity hover:opacity-80"
+                        className="w-3 rounded-t-md bg-[#44a83e] transition-opacity hover:opacity-80"
                         style={{ height: `${heightPct}%` }}
                       />
 

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Search, Menu, BellDot, UserPen } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
 import { ThemeToggleButton } from "../ThemToggleButton";
+import LoginButton from "../Buttons/LoginButton";
 
 export default function Header() {
   const { toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -63,6 +64,7 @@ export default function Header() {
           <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1b2740] dark:text-slate-300 dark:hover:bg-[#11182b]">
             <UserPen />
           </span>
+          <LoginButton />
         </div>
       </div>
     </header>
