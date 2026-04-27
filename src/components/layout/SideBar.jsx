@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   BookUser,
   X,
-  
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
@@ -22,66 +21,18 @@ export default function Sidebar() {
   const { isExpanded, isMobileOpen, closeMobileSidebar } = useSidebar();
 
   const sidebarItems = [
-    {
-      name: "Dashboard",
-      href: "/",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Manage Admins",
-      href: "/manage-admins",
-      icon: CircleUserRound,
-    },
-    {
-      name: "Manage Teams and Departments",
-      href: "/manage-teams",
-      icon: Building2,
-    },
-    {
-      name: "Purchase Orders",
-      href: "/purchase-orders",
-      icon: ShoppingCart,
-    },
-    {
-      name: "Product List",
-      href: "/product-list",
-      icon: Package,
-    },
-    {
-      name: "BOM",
-      href: "/bom",
-      icon: ClipboardList,
-    },
-    {
-      name: "Inventory",
-      href: "/inventory",
-      icon: Boxes,
-    },
-    {
-      name: "Godowns",
-      href: "/godowns",
-      icon: Warehouse,
-    },
-    {
-      name: "Assembly Line",
-      href: "/assembly-line",
-      icon: Factory,
-    },
-    {
-      name: "Production",
-      href: "/production",
-      icon: Cog,
-    },
-    {
-      name: "Invoicing",
-      href: "/invoicing",
-      icon: FileText,
-    },
-    {
-      name: "Quality Check",
-      href: "/quality-check",
-      icon: ShieldCheck,
-    },
+    { name: "Dashboard",                    href: "/",                icon: LayoutDashboard },
+    { name: "Manage Admins",                href: "/manage-admins",   icon: CircleUserRound },
+    { name: "Manage Teams and Departments", href: "/manage-teams",    icon: Building2       },
+    { name: "Purchase Orders",              href: "/purchase-orders", icon: ShoppingCart    },
+    { name: "Product List",                 href: "/product-list",    icon: Package         },
+    { name: "BOM",                          href: "/bom",             icon: ClipboardList   },
+    { name: "Inventory",                    href: "/inventory",       icon: Boxes           },
+    { name: "Godowns",                      href: "/godowns",         icon: Warehouse       },
+    { name: "Assembly Line",                href: "/assembly-line",   icon: Factory         },
+    { name: "Production",                   href: "/production",      icon: Cog             },
+    { name: "Invoicing",                    href: "/invoicing",       icon: FileText        },
+    { name: "Quality Check",                href: "/quality-check",   icon: ShieldCheck     },
   ];
 
   return (
@@ -94,23 +45,26 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-300 bg-white py-6 transition-all duration-300 dark:border-[#162033] dark:bg-[#0b1220]
-        ${isExpanded ? "w-64" : "w-20"}
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-300 dark:border-[#162033] transition-all duration-300
+          ${isExpanded ? "w-64" : "w-20"}
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between px-4">
+        <div
+          className="flex items-center justify-between px-4 py-2 shrink-0"
+          style={{ backgroundColor: "#3a3c44" }}
+        >
           <NavLink
             to="/"
             className="flex items-center gap-3 px-2 py-2"
             onClick={closeMobileSidebar}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-b from-[#44a83e] to-[#257620] shadow-[0_10px_30px_rgba(70,95,255,0.25)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-b from-[#44a83e] to-[#257620] shadow-[0_10px_30px_rgba(70,95,255,0.25)] shrink-0">
               <BookUser className="h-5 w-5 text-white" />
             </div>
 
             {isExpanded && (
-              <span className="text-[25px] font-semibold tracking-tight text-slate-900 dark:text-white">
+              <span className="text-[25px] font-semibold tracking-tight" style={{ color: "#f5f5f5" }}>
                 Admin Panel
               </span>
             )}
@@ -118,7 +72,10 @@ export default function Sidebar() {
 
           <button
             onClick={closeMobileSidebar}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-[#11182b] lg:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg lg:hidden"
+            style={{ color: "#f5f5f5" }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(245,245,245,0.1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             aria-label="Close Sidebar"
           >
             <X className="h-5 w-5" />
@@ -127,11 +84,10 @@ export default function Sidebar() {
 
         <hr className="my-6 border-slate-300 dark:border-[#162033]" />
 
-        <nav className="flex-1 overflow-y-auto px-4">
+        <nav className="flex-1 overflow-y-auto px-4 bg-white dark:bg-[#0b1220]">
           <ul className="space-y-2">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
-
               return (
                 <li key={item.name}>
                   <NavLink
@@ -156,7 +112,7 @@ export default function Sidebar() {
 
         <div className="border-t border-slate-300 px-4 pt-6 dark:border-[#162033]">
           <div className={`flex items-center ${isExpanded ? "gap-3" : "justify-center"}`}>
-            <CircleUserRound 
+            <CircleUserRound
               className="h-10 w-10 rounded-full object-cover bg-[#2d6e2a] text-white"
             />
             {isExpanded && (

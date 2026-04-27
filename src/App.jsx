@@ -5,6 +5,9 @@ import Overview from "./components/Overview";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import NotFound from "./components/pages/NotFound";
+import ManageAdmins from "./components/ManageAdmin";
+import PurchaseOrders from "./components/PurchaseOrders";
+import ProductList from "./components/ProductList";
 
 export default function App() {
   return (
@@ -12,8 +15,11 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Register />} />
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Overview />} />
+        <Route element={<Layout />}>
+          <Route path="/" index element={<Overview />} />
+          <Route path="/manage-admins" index element={<ManageAdmins />} />
+          <Route path="/purchase-orders" index element={<PurchaseOrders />} />
+          <Route path="/product-list" index element={<ProductList />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

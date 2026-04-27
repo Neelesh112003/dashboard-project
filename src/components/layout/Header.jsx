@@ -29,41 +29,62 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur-md dark:border-[#162033] dark:bg-[#0d1528]/90">
+    <header
+      className="sticky top-0 z-30 border-b backdrop-blur-md"
+      style={{
+        backgroundColor: "rgba(58, 60, 68, 0.92)",
+        borderColor: "rgba(245, 245, 245, 0.1)",
+        color: "#f5f5f5",
+      }}
+    >
       <div className="flex items-center justify-between px-4 py-4 lg:px-6">
+        {/* Left — sidebar toggle */}
         <div className="flex items-center gap-3">
           <button
             onClick={handleToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1b2740] dark:text-slate-300 dark:hover:bg-[#11182b]"
+            className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors"
+            style={{
+              border: "1px solid rgba(245, 245, 245, 0.15)",
+              color: "#f5f5f5",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor = "rgba(245, 245, 245, 0.08)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = "transparent")
+            }
             aria-label="Toggle Sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="hidden lg:block">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search or type command..."
-              className="h-11 w-95 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-11 pr-16 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 dark:border-[#1b2740] dark:bg-[#0f172a] dark:text-white dark:placeholder:text-slate-500"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-500 dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-400">
-              ⌘ K
-            </span>
-          </div>
-        </div>
+        {/* Center — reserved slot */}
+        <div className="hidden lg:block" />
 
+        {/* Right — actions */}
         <div className="flex items-center gap-3">
           <ThemeToggleButton />
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1b2740] dark:text-slate-300 dark:hover:bg-[#11182b]">
-            <BellDot />
-          </span>
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-[#1b2740] dark:text-slate-300 dark:hover:bg-[#11182b]">
-            <UserPen />
-          </span>
+
+          {[BellDot, UserPen].map((Icon, i) => (
+            <span
+              key={i}
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg transition-colors"
+              style={{
+                border: "1px solid rgba(245, 245, 245, 0.15)",
+                color: "#f5f5f5",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "rgba(245, 245, 245, 0.08)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
+            >
+              <Icon className="h-5 w-5" />
+            </span>
+          ))}
+
           <LoginButton />
         </div>
       </div>
