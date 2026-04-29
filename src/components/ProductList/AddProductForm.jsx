@@ -1,171 +1,374 @@
 import { useState } from "react";
 import {
-  Plus,
   Package,
-  IndianRupee,
-  Boxes,
-  FileText,
+  X,
+  CheckCircle,
   Hash,
-  DollarSignIcon,
+  Shapes,
+  Tags,
+  Boxes,
+  FolderTree,
+  ToggleLeft,
+  FileText,
+  Layers3,
 } from "lucide-react";
 
-const initialState = {
-  name: "",
-  price: "",
-  stock: "",
-  category: "",
-  sku: "",
-  description: "",
-};
+function Field({ label, required, children, error }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {label} {required ? <span className="text-red-500">*</span> : null}
+      </label>
+      {children}
+      {error ? <p className="text-xs text-red-500">{error}</p> : null}
+    </div>
+  );
+}
 
-export default function AddProductForm({ onAdd }) {
-  const [formData, setFormData] = useState(initialState);
+export default function CreateProductForm({ onAdd, onClose }) {
+  const initialForm = {
+    productCode: "",
+    productHsn: "",
+    productName: "",
+    type: "",
+    category: "",
+    productGroup: "",
+    hsnGroupName: "",
+    hsnGroupCode: "",
+    subType: "",
+    subCategory: "",
+    productStatus: "active",
+    productDetails: "",
+  };
+
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [successMsg, setSuccessMsg] = useState(false);
+
+  const validate = () => {
+    const e = {};
+
+    if (!form.productCode.trim()) e.productCode = "Product code is required";
+    if (!form.productHsn.trim()) e.productHsn = "Product HSN is required";
+    else if (!/^\d{6}$/.test(form.productHsn.trim())) e.productHsn = "HSN must be 6 digits";
+
+    if (!form.productName.trim()) e.productName = "Product name is required";
+    if (!form.type.trim()) e.type = "Type is required";
+    if (!form.category.trim()) e.category = "Category is required";
+    if (!form.productGroup.trim()) e.productGroup = "Product group is required";
+    if (!form.hsnGroupName.trim()) e.hsnGroupName = "HSN group name is required";
+    if (!form.hsnGroupCode.trim()) e.hsnGroupCode = "HSN group code is required";
+    else if (!/^\d{6}$/.test(form.hsnGroupCode.trim())) e.hsnGroupCode = "HSN group code must be 6 digits";
+
+    if (!form.subType.trim()) e.subType = "Sub-type is required";
+    if (!form.subCategory.trim()) e.subCategory = "Sub-category is required";
+    if (!form.productDetails.trim()) e.productDetails = "Product details are required";
+
+    return e;
+  };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleAdd = () => {
+    const e = validate();
 
-    onAdd({
-      ...formData,
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+
+    onAdd?.({
+      ...form,
       id: Date.now(),
-      price: Number(formData.price),
-      stock: Number(formData.stock),
+      createdOn: new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
     });
 
-    setFormData(initialState);
+    setForm(initialForm);
+    setErrors({});
+    setSuccessMsg(true);
+
+    setTimeout(() => {
+      setSuccessMsg(false);
+      onClose?.();
+    }, 1500);
   };
 
-  const fields = [
-    {
-      name: "name",
-      label: "Product Name",
-      icon: Package,
-      type: "text",
-      placeholder: "e.g. Wireless Mouse",
-    },
-    {
-      name: "price",
-      label: "Price",
-      icon: DollarSignIcon,
-      type: "number",
-      placeholder: "e.g. 1499",
-    },
-    {
-      name: "stock",
-      label: "Stock Quantity",
-      icon: Boxes,
-      type: "number",
-      placeholder: "e.g. 250",
-    },
-    {
-      name: "category",
-      label: "Category",
-      icon: Hash,
-      type: "text",
-      placeholder: "e.g. Electronics",
-    },
-    {
-      name: "sku",
-      label: "SKU Code",
-      icon: Hash,
-      type: "text",
-      placeholder: "e.g. WM-2026-001",
-    },
-  ];
+  const inp = (field) =>
+    `w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 dark:bg-[#11182b] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 ${
+      errors[field] ? "border-red-500" : "border-slate-200 dark:border-[#1b2740]"
+    }`;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-      {/* Header */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
-        style={{ backgroundColor: "#3a3c44" }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-            <Plus className="h-5 w-5 text-white" />
+        className="absolute inset-0"
+        style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+        onClick={onClose}
+      />
+
+      <div className="relative z-10 w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-[#0d1528] max-h-[90vh] flex flex-col">
+        <div
+          className="px-6 py-5 border-b border-slate-200 dark:border-[#162033] flex items-center gap-3 shrink-0"
+          style={{ backgroundColor: "#3a3c44" }}
+        >
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{ backgroundColor: "rgba(245,245,245,0.12)" }}
+          >
+            <Package className="h-5 w-5 text-white" />
           </div>
 
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Add New Product
-            </h2>
-            <p className="text-xs text-white/60">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-white">Create Product</h2>
+            <p className="text-xs" style={{ color: "rgba(245,245,245,0.55)" }}>
               Fill in the details to create a new product
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-3">
-          {fields.map((field) => {
-            const Icon = field.icon;
-
-            return (
-              <div key={field.name} className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {field.label}
-                </label>
-
-                <div className="relative">
-                  <Icon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-                  <input
-                    type={field.type}
-                    name={field.name}
-                    value={formData[field.name]}
-                    onChange={handleChange}
-                    required
-                    placeholder={field.placeholder}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[#44a83e] focus:bg-white focus:ring-4 focus:ring-green-100 dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-100 dark:focus:ring-green-900/20"
-                  />
-                </div>
+        <div className="overflow-y-auto flex-1">
+          <div className="p-6 space-y-6">
+            {successMsg ? (
+              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+                <CheckCircle className="h-4 w-4 shrink-0" />
+                Product created successfully.
               </div>
-            );
-          })}
-        </div>
+            ) : null}
 
-        {/* Description */}
-        <div className="px-6 pb-6">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Product Description
-            </label>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100 dark:border-[#162033]">
+                Product Information
+              </p>
 
-            <div className="relative">
-              <FileText className="absolute left-4 top-4 h-4 w-4 text-slate-400" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <Field label="Product Code" required error={errors.productCode}>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="productCode"
+                      placeholder="Enter product code"
+                      value={form.productCode}
+                      onChange={handleChange}
+                      className={inp("productCode") + " pl-11"}
+                    />
+                  </div>
+                </Field>
 
-              <textarea
-                rows="4"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                placeholder="Enter detailed product description..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[#44a83e] focus:bg-white focus:ring-4 focus:ring-green-100 dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-100 dark:focus:ring-green-900/20"
-              />
+                <Field label="Product HSN" required error={errors.productHsn}>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="productHsn"
+                      maxLength={6}
+                      placeholder="Enter 6 digit HSN"
+                      value={form.productHsn}
+                      onChange={handleChange}
+                      className={inp("productHsn") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Product Name" required error={errors.productName}>
+                  <div className="relative">
+                    <Package className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="productName"
+                      placeholder="Enter product name"
+                      value={form.productName}
+                      onChange={handleChange}
+                      className={inp("productName") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Type" required error={errors.type}>
+                  <div className="relative">
+                    <Shapes className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="type"
+                      placeholder="Enter type"
+                      value={form.type}
+                      onChange={handleChange}
+                      className={inp("type") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Category" required error={errors.category}>
+                  <div className="relative">
+                    <Tags className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="category"
+                      placeholder="Enter category"
+                      value={form.category}
+                      onChange={handleChange}
+                      className={inp("category") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Product Group" required error={errors.productGroup}>
+                  <div className="relative">
+                    <Boxes className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="productGroup"
+                      placeholder="Enter product group"
+                      value={form.productGroup}
+                      onChange={handleChange}
+                      className={inp("productGroup") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="HSN Group Name" required error={errors.hsnGroupName}>
+                  <div className="relative">
+                    <FolderTree className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="hsnGroupName"
+                      placeholder="Enter group name"
+                      value={form.hsnGroupName}
+                      onChange={handleChange}
+                      className={inp("hsnGroupName") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="HSN Group Code" required error={errors.hsnGroupCode}>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="hsnGroupCode"
+                      maxLength={6}
+                      placeholder="Enter 6 digit HSN code"
+                      value={form.hsnGroupCode}
+                      onChange={handleChange}
+                      className={inp("hsnGroupCode") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Sub-Type" required error={errors.subType}>
+                  <div className="relative">
+                    <Layers3 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="subType"
+                      placeholder="Enter sub-type"
+                      value={form.subType}
+                      onChange={handleChange}
+                      className={inp("subType") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Sub-Category" required error={errors.subCategory}>
+                  <div className="relative">
+                    <Tags className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      name="subCategory"
+                      placeholder="Enter sub-category"
+                      value={form.subCategory}
+                      onChange={handleChange}
+                      className={inp("subCategory") + " pl-11"}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Product Status" required error={errors.productStatus}>
+                  <div className="relative">
+                    <ToggleLeft className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <select
+                      name="productStatus"
+                      value={form.productStatus}
+                      onChange={handleChange}
+                      className={inp("productStatus") + " pl-11"}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </Field>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100 dark:border-[#162033]">
+                Product Details
+              </p>
+
+              <div className="grid grid-cols-1 gap-5">
+                <Field label="Product Details" required error={errors.productDetails}>
+                  <div className="relative">
+                    <FileText className="absolute left-4 top-4 h-4 w-4 text-slate-400" />
+                    <textarea
+                      rows={4}
+                      name="productDetails"
+                      placeholder="Enter detailed product information..."
+                      value={form.productDetails}
+                      onChange={handleChange}
+                      className={inp("productDetails") + " pl-11 py-3"}
+                    />
+                  </div>
+                </Field>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="px-6 pb-6">
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-[#162033] flex items-center gap-3 shrink-0">
           <button
-            type="submit"
-            className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437] active:scale-95"
+            onClick={handleAdd}
+            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            style={{ backgroundColor: "#44a83e" }}
           >
-            <Plus className="h-4 w-4" />
-            Add Product
+            <Package className="h-4 w-4" />
+            Create Product
+          </button>
+
+          <button
+            onClick={() => {
+              setForm(initialForm);
+              setErrors({});
+            }}
+            className="rounded-xl border border-slate-200 dark:border-[#1b2740] px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#11182b] transition-all"
+          >
+            Reset
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export default function Sidebar() {
   const sidebarItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Manage Admins", href: "/manage-admins", icon: CircleUserRound },
-    { name: "Manage Teams and Departments", href: "/manage-teams", icon: Building2 },
+    { name: "Manage Teams and Departments", href: "/manage-teams-departments", icon: Building2 },
     { name: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart },
     { name: "Product List", href: "/product-list", icon: Package },
     { name: "BOM", href: "/bom", icon: ClipboardList },

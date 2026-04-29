@@ -8,6 +8,7 @@ import NotFound from "./components/pages/NotFound";
 import ManageAdmins from "./components/ManageAdmin";
 import PurchaseOrders from "./components/PurchaseOrders";
 import ProductList from "./components/ProductList";
+import ManageTeamAndDepartment from "./components/ManageTeamAndDepartment";
 
 export default function App() {
   return (
@@ -15,12 +16,15 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Register />} />
+
         <Route element={<Layout />}>
-          <Route path="/" index element={<Overview />} />
-          <Route path="/manage-admins" index element={<ManageAdmins />} />
-          <Route path="/purchase-orders" index element={<PurchaseOrders />} />
-          <Route path="/product-list" index element={<ProductList />} />
+          <Route path="/" element={<Overview />} />
+          <Route path="/manage-admins" element={<ManageAdmins />} />
+          <Route path="/purchase-orders" element={<PurchaseOrders />} />
+          <Route path="/product-list" element={<ProductList />} />
+          <Route path="/manage-teams-departments" element={<ManageTeamAndDepartment />} />
         </Route>
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </SidebarProvider>

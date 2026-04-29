@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ShoppingCart, Plus } from "lucide-react";
+import ActionButton from "../Buttons/ActionButton";
 
 const CATEGORIES = ["Laptop", "SmartPhone", "Watch", "Tablet", "Accessory", "Other"];
 const STATUSES   = ["Pending", "Processing", "Delivered", "Cancelled"];
@@ -87,14 +88,7 @@ export default function AddOrderForm({ onAdd }) {
       </div>
 
       <div className="px-6 pb-6">
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 active:scale-95"
-          style={{ backgroundColor: "#44a83e" }}
-        >
-          <Plus className="h-4 w-4" />
-          Add Order
-        </button>
+        <ActionButton text="Add Order" onClick={handleAdd} icon={Plus} />
       </div>
     </div>
   );
