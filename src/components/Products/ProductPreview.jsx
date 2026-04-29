@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Eye, Pencil, Trash2, Package, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import ProductViewModal from "./ProductViewModal";
+import ExportTable from "./ExportTable"; // adjust path
 
 const ITEMS_PER_PAGE = 10;
 
@@ -59,21 +60,42 @@ export default function ProductPreview({ products, onDelete }) {
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
         {/* Header */}
         <div
-          className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
-          style={{ backgroundColor: "#3a3c44" }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-              <Package className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Product List</h2>
-              <p className="text-xs text-white/60">
-                {filteredProducts.length} Product{filteredProducts.length !== 1 ? "s" : ""} Available
-              </p>
-            </div>
-          </div>
-        </div>
+  className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
+  style={{ backgroundColor: "#3a3c44" }}
+>
+  <div className="flex items-center justify-between">
+
+    {/* LEFT */}
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+        <Package className="h-5 w-5 text-white" />
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-white">Product List</h2>
+        <p className="text-xs text-white/60">
+          {filteredProducts.length} Product
+          {filteredProducts.length !== 1 ? "s" : ""} Available
+        </p>
+      </div>
+    </div>
+
+    {/* ✅ RIGHT (EXPORT) */}
+    <ExportTable
+      title="Products"
+      columns={[
+        { label: "Product Name", key: "productName" },
+        { label: "Product Code", key: "productCode" },
+        { label: "Category", key: "category" },
+        { label: "Type", key: "type" },
+        { label: "Status", key: "productStatus" },
+        { label: "Group", key: "productGroup" },
+      ]}
+      data={filteredProducts} // important
+    />
+
+  </div>
+</div>
 
         {/* Filter Bar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 dark:border-[#162033] dark:bg-[#0d1f38]">

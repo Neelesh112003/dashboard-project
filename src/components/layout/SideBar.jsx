@@ -39,7 +39,7 @@ export default function Sidebar() {
       icon: Package,
       href: "/products/list",
       children: [
-        {name:"Products list" ,href:"/products/list"},
+        { name: "Products list", href: "/products/list" },
         { name: "Product Groups", href: "/products/groups" },
         { name: "HSN Groups", href: "/products/hsn-groups" },
       ],
@@ -52,15 +52,20 @@ export default function Sidebar() {
     { name: "Invoicing", href: "/invoicing", icon: FileText },
     { name: "Quality Check", href: "/quality-check", icon: ShieldCheck },
   ];
-  const isProductRoute =location.pathname === "/products/list" ||  location.pathname.startsWith("/products/groups") ||    location.pathname.startsWith("/products/hsn-groups");
-useEffect(() => {
-  if (isProductRoute) {
-    setOpenMenu("Product List");
-  } else {
-    // This ensures other tabs close the dropdown
-    setOpenMenu(null);
-  }
-}, [location.pathname, isProductRoute]);
+  const isProductRoute =
+    location.pathname === "/products/list" ||
+    location.pathname.startsWith("/products/groups") ||
+    location.pathname.startsWith("/products/hsn-groups");
+
+    
+  useEffect(() => {
+    if (isProductRoute) {
+      setOpenMenu("Product List");
+    } else {
+      // This ensures other tabs close the dropdown
+      setOpenMenu(null);
+    }
+  }, [location.pathname, isProductRoute]);
   return (
     <>
       {isMobileOpen && (

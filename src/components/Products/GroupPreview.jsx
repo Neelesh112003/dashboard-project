@@ -1,5 +1,6 @@
 import { Eye, Pencil, Trash2, Boxes, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import ExportTable from "./ExportTable"; // adjust path
 
 const ITEMS_PER_PAGE = 10;
 
@@ -50,22 +51,44 @@ export default function GroupPreview({ groups, onDelete }) {
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
 
         {/* Header */}
-        <div
-          className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
-          style={{ backgroundColor: "#3a3c44" }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-              <Boxes className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Product Group List</h2>
-              <p className="text-xs text-white/60">
-                {filteredGroups.length} Group{filteredGroups.length !== 1 ? "s" : ""} Available
-              </p>
-            </div>
-          </div>
-        </div>
+     <div
+  className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
+  style={{ backgroundColor: "#3a3c44" }}
+>
+  <div className="flex items-center justify-between">
+
+    {/* LEFT SIDE */}
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+        <Boxes className="h-5 w-5 text-white" />
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-white">
+          Product Group List
+        </h2>
+        <p className="text-xs text-white/60">
+          {filteredGroups.length} Group
+          {filteredGroups.length !== 1 ? "s" : ""} Available
+        </p>
+      </div>
+    </div>
+
+    {/* ✅ RIGHT SIDE (EXPORT BUTTONS) */}
+    <ExportTable
+      title="Product Groups"
+      columns={[
+        { label: "Group Name", key: "groupName" },
+        { label: "Type", key: "type" },
+        { label: "Industry", key: "industry" },
+        { label: "Sector", key: "sector" },
+        { label: "Status", key: "status" },
+      ]}
+      data={filteredGroups} // important
+    />
+
+  </div>
+</div>
 
         {/* Filter Bar */}
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 dark:border-[#162033] dark:bg-[#0d1f38]">

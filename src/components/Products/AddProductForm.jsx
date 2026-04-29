@@ -4,6 +4,7 @@ import {
   Package,
   Boxes,
   Hash,
+  Upload
 } from "lucide-react";
 
 const initialState = {
@@ -141,29 +142,76 @@ export default function AddProductForm({ onAdd }) {
       placeholder: "Enter product description...",
     },
   ];
+  const handleImport = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = (event) => {
+    const text = event.target.result;
+
+    // convert CSV → array
+    const rows = text.split("\n").map((row) => row.split(","));
+
+    const headers = rows[0];
+
+    const importedProducts = rows.slice(1).map((row) => {
+      const obj = {};
+
+      headers.forEach((header, index) => {
+        obj[header.trim()] = row[index]?.trim();
+      });
+
+      return {
+        ...obj,
+        id: Date.now() + Math.random(),
+      };
+    });
+
+    // ✅ send directly to table
+    importedProducts.forEach((product) => onAdd(product));
+  };
+
+  reader.readAsText(file);
+};
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
       {/* Header */}
       <div
-        className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
-        style={{ backgroundColor: "#3a3c44" }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-            <Plus className="h-5 w-5 text-white" />
-          </div>
+  className="border-b border-slate-200 px-6 py-5 flex items-center justify-between dark:border-[#162033]"
+  style={{ backgroundColor: "#3a3c44" }}
+>
+  <div className="flex items-center gap-3">
+    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+      <Plus className="h-5 w-5 text-white" />
+    </div>
 
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Add New Product
-            </h2>
-            <p className="text-xs text-white/60">
-              Fill in the details to create a new product
-            </p>
-          </div>
-        </div>
-      </div>
+    <div>
+      <h2 className="text-lg font-semibold text-white">
+        Add New Product
+      </h2>
+      <p className="text-xs text-white/60">
+        Fill in the details to create a new product
+      </p>
+    </div>
+  </div>
+
+  {/* ✅ IMPORT BUTTON */}
+  <div>
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white hover:bg-white/10">
+      <Upload className="h-4 w-4" />
+      Import
+      <input
+        type="file"
+        accept=".csv"
+        onChange={handleImport}
+        className="hidden"
+      />
+    </label>
+  </div>
+</div>
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
