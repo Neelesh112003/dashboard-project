@@ -190,8 +190,8 @@ export default function Sidebar() {
 
       <aside
         className={`fixed left-0 top-0 z-50 flex h-screen flex-col
-        border-r border-slate-300 bg-white dark:bg-[#0b1220]
-        dark:border-[#162033] transition-all duration-300
+        border-r border-slate-300 bg-white dark:bg-[#081028]
+        dark:border-[#162033] transition-all duration-300  dark:text-white
         ${isExpanded ? "w-64" : "w-20"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
