@@ -1,6 +1,6 @@
 import { useState } from "react";
-import CreateForm from "../components/CreateForm";
-import CreateTable from "../components/CreateTable";
+import CreateForm from "../CreateForm";
+import CreateTable from "../CreateTable";
 import { Package, Boxes, Hash,Trash2 } from "lucide-react";
 
 export default function ProductList() {
