@@ -1,11 +1,13 @@
 import { useState } from "react";
-import GroupPreview from "./Products/GroupPreview";
-import AddProductGroupForm from "./Products/GroupForm";
+import CreateForm from "../components/CreateForm";
+import CreateTable from "../components/CreateTable";
+import { Boxes, Hash, Package, Trash2 } from "lucide-react";
 
 export default function ProductGroups() {
   const [activeForm, setActiveForm] = useState(null);
   const [groups, setGroups] = useState([]);
 
+  // ✅ ADD
   const handleAddGroup = (group) => {
     setGroups((prev) => [
       {
@@ -14,17 +16,110 @@ export default function ProductGroups() {
       },
       ...prev,
     ]);
-    // Also close the form automatically after adding
+
     setActiveForm(null);
   };
 
+  // ✅ DELETE
   const handleDeleteGroup = (id) => {
-    setGroups((prev) => prev.filter((group) => group.id !== id));
+    setGroups((prev) =>
+      prev.filter((group) => group.id !== id)
+    );
   };
+
+  // ✅ INITIAL STATE
+  const initialState = {
+    groupName: "",
+    type: "",
+    industry: "",
+    sector: "",
+    category: "",
+    status: "active",
+  };
+
+  // ✅ FORM FIELDS
+  const fields = [
+    {
+      name: "groupName",
+      label: "Group Name",
+      icon: Boxes,
+      type: "text",
+      placeholder: "Red T-Shirt",
+    },
+    {
+      name: "type",
+      label: "Type",
+      icon: Hash,
+      type: "text",
+      placeholder: "Regular",
+    },
+    {
+      name: "industry",
+      label: "Industry",
+      icon: Package,
+      type: "text",
+      placeholder: "Clothing",
+    },
+    {
+      name: "sector",
+      label: "Sector",
+      icon: Package,
+      type: "select",
+      options: [
+        "Apparel & Textiles",
+        "Electronics",
+        "Automotive",
+        "FMCG",
+        "Pharmaceuticals",
+        "Footwear",
+      ],
+    },
+    {
+      name: "category",
+      label: "Category",
+      icon: Hash,
+      type: "select",
+      options: [
+        "On Demand",
+        "Stock Item",
+        "Raw Material",
+        "Work in Progress",
+        "Finished Goods",
+      ],
+    },
+    {
+      name: "status",
+      label: "Status",
+      icon: Hash,
+      type: "select",
+      options: ["active", "inactive"],
+    },
+  ];
+
+  // ✅ TABLE COLUMNS
+  const columns = [
+    { label: "Group Name", key: "groupName" },
+    { label: "Type", key: "type" },
+    { label: "Industry", key: "industry" },
+    { label: "Sector", key: "sector" },
+    { label: "Category", key: "category" },
+    { label: "Status", key: "status" },
+  ];
+
+  // ✅ ACTION BUTTONS (DYNAMIC)
+  const actions = [
+    {
+      label: "Delete",
+      icon: Trash2,
+      onClick: (row) => handleDeleteGroup(row.id),
+      className:
+        "border-red-200 text-red-500 hover:bg-red-50",
+    },
+  ];
 
   return (
     <>
-      {/* Buttons */}
+      {/* TOP BUTTONS */}
       <div className="flex gap-3 mb-5">
         <button
           onClick={() => setActiveForm("group")}
@@ -43,16 +138,35 @@ export default function ProductGroups() {
         )}
       </div>
 
-      {/* Form Section */}
-      {activeForm === "group" && (
-        <AddProductGroupForm
-          onAdd={handleAddGroup}
-          onClose={() => setActiveForm(null)} // This is the logic you requested
-        />
-      )}
+      <div className="space-y-8">
+        {/* ✅ UNIVERSAL FORM */}
+        {activeForm === "group" && (
+          <CreateForm
+            title="Add Product Group"
+            subtitle="Add your product group details"
+            fields={fields}
+            initialState={initialState}
+            onSubmit={handleAddGroup}
+            onImport={(data) =>
+              data.forEach((item) => handleAddGroup(item))
+            }
+          />
+        )}
 
-      {/* Table Section */}
-      <GroupPreview groups={groups} onDelete={handleDeleteGroup} />
+        {/* ✅ UNIVERSAL TABLE */}
+        <CreateTable
+          title="Product Group List"
+          data={groups}
+          columns={columns}
+          filtersConfig={[
+            "type",
+            "industry",
+            "sector",
+            "status",
+          ]}
+          actions={actions}
+        />
+      </div>
     </>
   );
 }
