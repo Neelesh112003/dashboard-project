@@ -9,34 +9,36 @@ export default function HSNGroups() {
 
   // ✅ ADD
   const handleAdd = (data) => {
-    setHsnGroups((prev) => [
-      { ...data, id: Date.now() },
-      ...prev,
-    ]);
+    setHsnGroups((prev) => [{ ...data, id: Date.now() }, ...prev]);
     setActiveForm(false);
   };
 
   // ✅ DELETE
   const handleDelete = (id) => {
-    setHsnGroups((prev) =>
-      prev.filter((item) => item.id !== id)
-    );
+    setHsnGroups((prev) => prev.filter((item) => item.id !== id));
   };
 
   // ✅ INITIAL STATE
   const initialState = {
     name: "",
+    groupCode: "",
     code: "",
   };
-
   // ✅ FORM FIELDS
   const fields = [
     {
       name: "name",
-      label: "HSN Group Name",
+      label: "Group Name",
       icon: Package,
       type: "text",
       placeholder: "Textiles",
+    },
+    {
+      name: "groupCode",
+      label: "Group Code",
+      icon: Hash,
+      type: "text",
+      placeholder: "GRP001",
     },
     {
       name: "code",
@@ -50,6 +52,7 @@ export default function HSNGroups() {
   // ✅ TABLE COLUMNS
   const columns = [
     { label: "Group Name", key: "name" },
+    { label: "Group Code", key: "groupCode" },
     { label: "HSN Code", key: "code" },
   ];
 
@@ -59,8 +62,7 @@ export default function HSNGroups() {
       label: "Delete",
       icon: Trash2,
       onClick: (row) => handleDelete(row.id),
-      className:
-        "border-red-200 text-red-500 hover:bg-red-50",
+      className: "border-red-200 text-red-500 hover:bg-red-50",
     },
   ];
 
@@ -95,7 +97,11 @@ export default function HSNGroups() {
             fields={fields}
             initialState={initialState}
             onSubmit={(data) => {
-              // ✅ VALIDATION (moved here)
+              if (!data.groupCode) {
+                alert("Group Code is required");
+                return;
+              }
+
               if (!/^\d{6}$/.test(data.code)) {
                 alert("HSN Code must be exactly 6 digits");
                 return;
@@ -105,7 +111,7 @@ export default function HSNGroups() {
             }}
             onImport={(data) =>
               data.forEach((item) => {
-                if (/^\d{6}$/.test(item.code)) {
+                if (item.groupCode && /^\d{6}$/.test(item.code)) {
                   handleAdd(item);
                 }
               })

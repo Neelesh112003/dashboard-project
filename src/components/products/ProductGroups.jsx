@@ -22,23 +22,28 @@ export default function ProductGroups() {
 
   // ✅ DELETE
   const handleDeleteGroup = (id) => {
-    setGroups((prev) =>
-      prev.filter((group) => group.id !== id)
-    );
+    setGroups((prev) => prev.filter((group) => group.id !== id));
   };
 
   // ✅ INITIAL STATE
   const initialState = {
+    groupCode: "",
     groupName: "",
-    type: "",
+    groupType: "",
     industry: "",
     sector: "",
-    category: "",
-    status: "active",
+    categoryStatus: "active",
   };
 
   // ✅ FORM FIELDS
   const fields = [
+    {
+      name: "groupCode",
+      label: "Group Code",
+      icon: Hash,
+      type: "text",
+      placeholder: "GRP001",
+    },
     {
       name: "groupName",
       label: "Group Name",
@@ -47,8 +52,8 @@ export default function ProductGroups() {
       placeholder: "Red T-Shirt",
     },
     {
-      name: "type",
-      label: "Type",
+      name: "groupType",
+      label: "Group Type",
       icon: Hash,
       type: "text",
       placeholder: "Regular",
@@ -75,21 +80,8 @@ export default function ProductGroups() {
       ],
     },
     {
-      name: "category",
-      label: "Category",
-      icon: Hash,
-      type: "select",
-      options: [
-        "On Demand",
-        "Stock Item",
-        "Raw Material",
-        "Work in Progress",
-        "Finished Goods",
-      ],
-    },
-    {
-      name: "status",
-      label: "Status",
+      name: "categoryStatus",
+      label: "Category Status",
       icon: Hash,
       type: "select",
       options: ["active", "inactive"],
@@ -98,12 +90,12 @@ export default function ProductGroups() {
 
   // ✅ TABLE COLUMNS
   const columns = [
+    { label: "Group Code", key: "groupCode" },
     { label: "Group Name", key: "groupName" },
-    { label: "Type", key: "type" },
+    { label: "Group Type", key: "groupType" },
     { label: "Industry", key: "industry" },
     { label: "Sector", key: "sector" },
-    { label: "Category", key: "category" },
-    { label: "Status", key: "status" },
+    { label: "Category Status", key: "categoryStatus" },
   ];
 
   // ✅ ACTION BUTTONS (DYNAMIC)
@@ -112,8 +104,7 @@ export default function ProductGroups() {
       label: "Delete",
       icon: Trash2,
       onClick: (row) => handleDeleteGroup(row.id),
-      className:
-        "border-red-200 text-red-500 hover:bg-red-50",
+      className: "border-red-200 text-red-500 hover:bg-red-50",
     },
   ];
 
@@ -146,10 +137,15 @@ export default function ProductGroups() {
             subtitle="Add your product group details"
             fields={fields}
             initialState={initialState}
-            onSubmit={handleAddGroup}
-            onImport={(data) =>
-              data.forEach((item) => handleAddGroup(item))
-            }
+            onSubmit={(data) => {
+              if (!data.groupCode || !data.groupName) {
+                alert("Group Code and Name are required");
+                return;
+              }
+
+              handleAddGroup(data);
+            }}
+            onImport={(data) => data.forEach((item) => handleAddGroup(item))}
           />
         )}
 
@@ -158,12 +154,7 @@ export default function ProductGroups() {
           title="Product Group List"
           data={groups}
           columns={columns}
-          filtersConfig={[
-            "type",
-            "industry",
-            "sector",
-            "status",
-          ]}
+          filtersConfig={["groupType", "industry", "sector", "categoryStatus"]}
           actions={actions}
         />
       </div>

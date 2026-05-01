@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CreateForm from "../CreateForm";
 import CreateTable from "../CreateTable";
-import { Package, Boxes, Hash,Trash2 } from "lucide-react";
+import { Package, Boxes, Hash, Trash2 } from "lucide-react";
 
 export default function ProductList() {
   const [activeForm, setActiveForm] = useState(null);
@@ -13,6 +13,7 @@ export default function ProductList() {
       {
         ...product,
         id: Date.now(),
+        productId: prev.length + 1, // auto increment
       },
       ...prev,
     ]);
@@ -20,87 +21,104 @@ export default function ProductList() {
 
   // ✅ DELETE
   const handleDelete = (id) => {
-    setProducts((prev) =>
-      prev.filter((item) => item.id !== id)
-    );
+    setProducts((prev) => prev.filter((item) => item.id !== id));
   };
 
   // ✅ INITIAL STATE
   const initialState = {
+    productId: "",
+
     productCode: "",
     productHSN: "",
     productName: "",
+
     type: "",
+    productType: "",
+
     category: "",
-    productGroup: "",
-    hsnGroup: "",
     subType: "",
     subCategory: "",
+
     productStatus: "Active",
+
+    productGroupId: "",
+    productGroupName: "",
+    productGroupCode: "",
+
+    hsnGroupId: "",
+    hsnGroupName: "",
+    hsnGroupCode: "",
+
+    mainUnit: "",
+    subUnit: "",
+
+    size: "",
+    color: "",
+
     productDetails: "",
   };
 
   // ✅ FORM FIELDS
   const fields = [
+    // BASIC
+    { name: "productCode", label: "Product Code", icon: Hash, type: "text" },
+    { name: "productHSN", label: "Product HSN", icon: Hash, type: "number" },
+    { name: "productName", label: "Product Name", icon: Package, type: "text" },
+
+    // TYPE
+    { name: "type", label: "Type", icon: Boxes, type: "text" },
     {
-      name: "productCode",
-      label: "Product Code",
-      icon: Hash,
-      type: "text",
-      placeholder: "PRD-001",
-    },
-    {
-      name: "productHSN",
-      label: "Product HSN",
-      icon: Hash,
-      type: "number",
-      placeholder: "8471",
-    },
-    {
-      name: "productName",
-      label: "Product Name",
-      icon: Package,
-      type: "text",
-      placeholder: "Wireless Mouse",
-    },
-    {
-      name: "type",
-      label: "Type",
-      icon: Boxes,
-      type: "text",
-    },
-    {
-      name: "category",
-      label: "Category",
-      icon: Hash,
-      type: "text",
-    },
-    {
-      name: "productGroup",
-      label: "Product Group",
+      name: "productType",
+      label: "Product Type",
       icon: Boxes,
       type: "select",
-      options: ["Accessories", "Raw Materials", "Finished Goods"],
+      options: ["Raw Material", "Finished Goods"],
     },
+
+    // CATEGORY
+    { name: "category", label: "Category", icon: Hash, type: "text" },
+    { name: "subType", label: "Sub-Type", icon: Boxes, type: "text" },
+    { name: "subCategory", label: "Sub-Category", icon: Hash, type: "text" },
+
+    // GROUP
     {
-      name: "hsnGroup",
-      label: "HSN Group",
+      name: "productGroupId",
+      label: "Product Group ID",
       icon: Hash,
-      type: "select",
-      options: ["IT Goods", "Textiles", "Electronics"],
+      type: "text",
     },
     {
-      name: "subType",
-      label: "Sub-Type",
+      name: "productGroupName",
+      label: "Product Group Name",
       icon: Boxes,
       type: "text",
     },
     {
-      name: "subCategory",
-      label: "Sub-Category",
+      name: "productGroupCode",
+      label: "Product Group Code",
       icon: Hash,
       type: "text",
     },
+
+    // HSN GROUP
+    { name: "hsnGroupId", label: "HSN Group ID", icon: Hash, type: "text" },
+    {
+      name: "hsnGroupName",
+      label: "HSN Group Name",
+      icon: Boxes,
+      type: "text",
+    },
+    { name: "hsnGroupCode", label: "HSN Group Code", icon: Hash, type: "text" },
+
+    // UNITS
+    { name: "mainUnit", label: "Main Unit", icon: Package, type: "text" },
+    { name: "subUnit", label: "Sub Unit", icon: Package, type: "text" },
+
+    // ATTRIBUTES
+    { name: "size", label: "Size", icon: Hash, type: "text" },
+    { name: "color", label: "Color", icon: Hash, type: "text" },
+
+    // STATUS
     {
       name: "productStatus",
       label: "Status",
@@ -108,23 +126,25 @@ export default function ProductList() {
       type: "select",
       options: ["Active", "Inactive"],
     },
+
+    // DETAILS
     {
       name: "productDetails",
-      label: "Details",
+      label: "Description",
       icon: Package,
       type: "textarea",
-      placeholder: "Description...",
     },
   ];
 
   // ✅ TABLE COLUMNS
   const columns = [
+    { label: "ID", key: "productId" },
     { label: "Code", key: "productCode" },
-    { label: "HSN", key: "productHSN" },
     { label: "Name", key: "productName" },
-    { label: "Type", key: "type" },
+    { label: "HSN", key: "productHSN" },
+    { label: "Type", key: "productType" },
     { label: "Category", key: "category" },
-    { label: "Group", key: "productGroup" },
+    { label: "Group", key: "productGroupName" },
     { label: "Status", key: "productStatus" },
   ];
 
@@ -134,8 +154,7 @@ export default function ProductList() {
       label: "Delete",
       icon: Trash2,
       onClick: (row) => handleDelete(row.id),
-      className:
-        "border-red-200 text-red-500 hover:bg-red-50",
+      className: "border-red-200 text-red-500 hover:bg-red-50",
     },
   ];
 
@@ -169,9 +188,7 @@ export default function ProductList() {
             fields={fields}
             initialState={initialState}
             onSubmit={handleAdd}
-            onImport={(data) =>
-              data.forEach((item) => handleAdd(item))
-            }
+            onImport={(data) => data.forEach((item) => handleAdd(item))}
           />
         )}
 
@@ -181,9 +198,9 @@ export default function ProductList() {
           data={products}
           columns={columns}
           filtersConfig={[
-            "type",
+            "productType",
             "category",
-            "productGroup",
+            "productGroupName",
             "productStatus",
           ]}
           actions={actions}
