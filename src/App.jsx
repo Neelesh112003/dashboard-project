@@ -73,9 +73,9 @@ import QCChecklists from "./components/quality/QCChecklists";
 import QCHistory from "./components/quality/QCHistory";
 
 /* LOGS */
-import Transactions from "./components/logs/Transactions";
-import LoginHistory from "./components/logs/LoginHistory";
-import SoftwareTrail from "./components/logs/SoftwareTrail";
+import Transactions from "./components/details/Transactions";
+import LoginHistory from "./components/details/LoginHistory";
+import SoftwareTrail from "./components/details/SoftwareTrail";
 
 /* CASH & BANK */
 import CashBook from "./components/transactions/CashBook";
