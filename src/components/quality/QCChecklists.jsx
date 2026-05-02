@@ -42,6 +42,19 @@ export default function QCChecklists() {
     setFormData({ ...formData, items: updated });
   };
 
+  const handleTypeChange = (index, value) => {
+    const updated = [...formData.items];
+    updated[index].valueType = value;
+    if (value === "Character") {
+      updated[index].min = "-";
+      updated[index].max = "-";
+    } else {
+      updated[index].min = "";
+      updated[index].max = "";
+    }
+    setFormData({ ...formData, items: updated });
+  };
+
   const removeItem = (index) => {
     setFormData({
       ...formData,
@@ -171,8 +184,6 @@ export default function QCChecklists() {
                 <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                   Checklist Items
                 </h3>
-
-                
               </div>
 
               {formData.items.length === 0 ? (
@@ -199,9 +210,20 @@ export default function QCChecklists() {
 
                         <InputField label="Name" icon={Hash} value={item.name} onChange={(v)=>handleItemChange(i,"name",v)} />
                         <InputField label="Sub Name" icon={Hash} value={item.subName} onChange={(v)=>handleItemChange(i,"subName",v)} />
-                        <SelectField label="Type" icon={Package} value={item.valueType} onChange={(v)=>handleItemChange(i,"valueType",v)} options={["Numeric","Character"]}/>
-                        <InputField label="Min Value" icon={Hash} value={item.min} onChange={(v)=>handleItemChange(i,"min",v)} />
-                        <InputField label="Max Value" icon={Hash} value={item.max} onChange={(v)=>handleItemChange(i,"max",v)} />
+                        <SelectField
+                          label="Type"
+                          icon={Package}
+                          value={item.valueType}
+                          onChange={(v) => handleTypeChange(i, v)}
+                          options={["Numeric", "Character"]}
+                          noPlaceholder
+                        />
+                        {item.valueType !== "Character" && (
+                          <InputField label="Min Value" icon={Hash} value={item.min} onChange={(v)=>handleItemChange(i,"min",v)} />
+                        )}
+                        {item.valueType !== "Character" && (
+                          <InputField label="Max Value" icon={Hash} value={item.max} onChange={(v)=>handleItemChange(i,"max",v)} />
+                        )}
                         <InputField label="Same Value" icon={Hash} value={item.same} onChange={(v)=>handleItemChange(i,"same",v)} />
                         <InputField label="Tool" icon={Package} value={item.tool} onChange={(v)=>handleItemChange(i,"tool",v)} />
 
@@ -257,7 +279,7 @@ function InputField({ label, icon: Icon, value, onChange }) {
 }
 
 // ── REUSABLE SELECT ─────────────────────
-function SelectField({ label, icon: Icon, value, onChange, options=[] }) {
+function SelectField({ label, icon: Icon, value, onChange, options=[], noPlaceholder=false }) {
   const style =
     "w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none transition-all focus:border-[#44a83e] focus:ring-2 focus:ring-green-100 dark:bg-[#11182b] dark:border-[#1b2740]";
 
@@ -267,7 +289,7 @@ function SelectField({ label, icon: Icon, value, onChange, options=[] }) {
       <div className="relative">
         <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4"/>
         <select className={style} value={value} onChange={(e)=>onChange(e.target.value)}>
-          <option value="">Select</option>
+          {!noPlaceholder && <option value="">Select</option>}
           {options.map((opt,i)=><option key={i}>{opt}</option>)}
         </select>
       </div>
