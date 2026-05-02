@@ -20,81 +20,59 @@ export default function ChecklistReceipt() {
     year: "numeric",
   });
 
-  // ✅ PRINT FUNCTION (CLEAN + STABLE)
   const handlePrint = () => {
     const content = printRef.current.innerHTML;
-
     const win = window.open("", "_blank");
-
     win.document.write(`
       <html>
         <head>
           <title>QC Report - ${data.checklistName}</title>
           <style>
             @page { size: A4 landscape; margin: 8mm; }
-
-            body {
-              font-family: Arial, sans-serif;
-              font-size: 10px;
-              color: #000;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              table-layout: fixed;
-            }
-
-            td {
-              border: 1px solid #000;
-              padding: 4px;
-              vertical-align: middle;
-            }
-
+            body { font-family: Arial, sans-serif; font-size: 10px; color: #000; margin: 0; padding: 0; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #000; }
+            td { border: 1px solid #000; padding: 4px; vertical-align: middle; word-wrap: break-word; }
             .center { text-align: center; }
             .bold { font-weight: bold; }
-
-            img {
-              max-height: 40px;
-              object-fit: contain;
-            }
+            img { max-height: 50px; object-fit: contain; display: block; margin: 0 auto; }
+            .bg-gray { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
           </style>
         </head>
-        <body>
-          ${content}
-        </body>
+        <body>${content}</body>
       </html>
     `);
-
     win.document.close();
-
     setTimeout(() => {
       win.print();
       win.close();
     }, 300);
   };
 
-  // reusable cell styles
-  const td = (extra = {}) => ({
+  const cell = {
     border: "1px solid #000",
-    padding: "4px",
-    fontSize: 11,
-    ...extra,
-  });
+    padding: "6px 8px",
+    fontSize: "12px",
+    color: "#000",
+    verticalAlign: "middle",
+  };
 
-  const tdBold = (extra = {}) =>
-    td({ fontWeight: "bold", ...extra });
+  const labelCell = {
+    ...cell,
+    fontWeight: "bold",
+    backgroundColor: "#f9fafb",
+    whiteSpace: "nowrap",
+  };
 
   return (
-    <div className="p-4 bg-slate-100 min-h-screen">
-
-      {/* PRINT BUTTON */}
-      <div className="flex justify-end mb-4 no-print">
+    <div className="p-8 bg-slate-50 min-h-screen">
+      {/* TOOLBAR */}
+      <div className="max-w-[1100px] mx-auto flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-slate-800">Checklist Preview</h2>
         <button
           onClick={handlePrint}
-          className="bg-green-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 shadow-lg"
+          className="bg-green-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-green-700 shadow-lg flex items-center gap-2"
         >
-          🖨 Generate Report
+          <span>🖨</span> Generate Report
         </button>
       </div>
 
@@ -102,175 +80,106 @@ export default function ChecklistReceipt() {
       <div className="overflow-x-auto">
         <div
           ref={printRef}
-          className="bg-white mx-auto shadow-2xl p-2"
-          style={{ minWidth: 900 }}
+          className="bg-white mx-auto shadow-sm"
+          style={{ width: "1050px", border: "1px solid #000", fontFamily: "Arial, sans-serif" }}
         >
-          <table>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+            <colgroup>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <col key={i} style={{ width: `${100 / 12}%` }} />
+              ))}
+            </colgroup>
             <tbody>
 
-              {/* HEADER */}
+              {/* ── HEADER: Logo | Title | Doc info ── */}
               <tr>
-                <td colSpan={2} rowSpan={2} style={td({ textAlign: "center" })}>
-                  <img src={logo} alt="logo" />
+                <td colSpan={3} rowSpan={2} style={{ ...cell, textAlign: "center" }}>
+                  <img src={logo} alt="Tektronics Logo" style={{ maxHeight: "55px", margin: "0 auto" }} />
                 </td>
-
                 <td
-                  colSpan={5}
-                  style={tdBold({
-                    textAlign: "center",
-                    fontSize: 14,
-                  })}
+                  colSpan={6}
+                  rowSpan={2}
+                  style={{ ...cell, textAlign: "center", fontSize: "16px", fontWeight: "bold", textTransform: "uppercase" }}
                 >
-                  TEST REPORT OF{" "}
-                  {(data.applicableProduct || "UNKNOWN").toUpperCase()}
+                  Items  of {data.applicableProduct || "Product"}
                 </td>
-
-                <td colSpan={3} style={tdBold()}>
+                <td colSpan={3} style={{ ...cell, fontWeight: "bold", fontSize: "11px" }}>
                   DOC No: TKTQA015FR
-                  <br />
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={3} style={{ ...cell, fontWeight: "bold", fontSize: "11px" }}>
                   PAGE 1 OF 1
                 </td>
               </tr>
 
+              {/* ── CHECKLIST INFO ONLY ── */}
               <tr>
-                <td colSpan={3} style={tdBold()}>
-                  E-WAY BILL NO:
-                </td>
-                <td colSpan={2} style={tdBold()}>
-                  IIR No.
-                </td>
-                <td colSpan={3}></td>
+                <td colSpan={2} style={labelCell}>ITEM NAME:</td>
+                <td colSpan={4} style={{ ...cell, fontWeight: "bold" }}>{data.checklistName}</td>
+                <td colSpan={2} style={labelCell}>ITEM CODE:</td>
+                <td colSpan={4} style={cell}>{data.checklistCode}</td>
+              </tr>
+              <tr>
+                <td colSpan={2} style={labelCell}>PRODUCT:</td>
+                <td colSpan={4} style={cell}>{data.applicableProduct}</td>
+                <td colSpan={2} style={labelCell}>GROUP:</td>
+                <td colSpan={4} style={cell}>{data.groupName}</td>
               </tr>
 
-              {/* META */}
-              <tr>
-                <td colSpan={2} style={tdBold()}>
-                  REC DATE:
-                </td>
-                <td colSpan={8}></td>
-              </tr>
-
-              <tr>
-                <td colSpan={2} style={tdBold()}>
-                  INV NO:
-                </td>
-                <td colSpan={8}>
-                  ITEM NAME: {data.checklistName}
-                </td>
-              </tr>
-
-              <tr>
-                <td colSpan={2} style={tdBold()}>
-                  INV DATE:
-                </td>
-                <td colSpan={8}>
-                  ITEM CODE: {data.checklistCode}
-                </td>
-              </tr>
-
-              <tr>
-                <td colSpan={2} style={tdBold()}>
-                  P.O NO:
-                </td>
-                <td colSpan={8}>
-                  TECHNICAL PARAMETER & SAMPLE QTY
-                </td>
-              </tr>
-
-              <tr>
-                <td colSpan={2} style={tdBold()}>
-                  LOT QTY:
-                </td>
-                <td colSpan={8}>
-                  SUPPLIER NAME:
-                </td>
-              </tr>
-
-              {/* SECTION */}
+              {/* ── SECTION HEADING ── */}
               <tr>
                 <td
-                  colSpan={10}
-                  style={tdBold({ background: "#f2f2f2" })}
+                  colSpan={12}
+                  style={{ ...cell, fontWeight: "bold", backgroundColor: "#f2f2f2", padding: "8px" }}
                 >
-                  DIMENSIONAL CHARACTERISTICS
+                  Items List
                 </td>
               </tr>
 
-              {/* TABLE HEADER */}
-              <tr>
-                <td style={tdBold({ textAlign: "center" })}>S.No</td>
-                <td style={tdBold({ textAlign: "center" })}>Name</td>
-                <td style={tdBold({ textAlign: "center" })}>Sub Name</td>
-                <td style={tdBold({ textAlign: "center" })}>Type</td>
-                <td style={tdBold({ textAlign: "center" })}>Min</td>
-                <td style={tdBold({ textAlign: "center" })}>Max</td>
-                <td style={tdBold({ textAlign: "center" })}>Same</td>
-                <td style={tdBold({ textAlign: "center" })}>Tool</td>
-                <td colSpan={2}></td>
+              {/* ── COLUMN HEADERS ── */}
+              <tr style={{ backgroundColor: "#f9fafb", fontWeight: "bold" }}>
+                <td style={{ ...cell, textAlign: "center" }}>S.No</td>
+                <td colSpan={3} style={{ ...cell, textAlign: "center" }}>Name</td>
+                <td colSpan={2} style={{ ...cell, textAlign: "center" }}>Sub Name</td>
+                <td style={{ ...cell, textAlign: "center" }}>Type</td>
+                <td style={{ ...cell, textAlign: "center" }}>Min</td>
+                <td style={{ ...cell, textAlign: "center" }}>Max</td>
+                <td style={{ ...cell, textAlign: "center" }}>Same</td>
+                <td colSpan={2} style={{ ...cell, textAlign: "center" }}>Tool</td>
               </tr>
 
-              {/* ITEMS */}
+              {/* ── ITEMS ── */}
               {data.items.map((item, i) => {
-                const isFirst =
-                  i === 0 || data.items[i - 1].name !== item.name;
-
-                const groupSize = data.items.filter(
-                  (x) => x.name === item.name
-                ).length;
-
+                const isFirst = i === 0 || data.items[i - 1].name !== item.name;
+                const groupSize = data.items.filter((x) => x.name === item.name).length;
                 return (
                   <tr key={i}>
-                    <td style={td({ textAlign: "center" })}>
-                      {i + 1}
-                    </td>
-
+                    <td style={{ ...cell, textAlign: "center" }}>{i + 1}</td>
                     {isFirst && (
                       <td
+                        colSpan={3}
                         rowSpan={groupSize}
-                        style={tdBold({
-                          textAlign: "center",
-                          verticalAlign: "middle",
-                        })}
+                        style={{ ...cell, textAlign: "center", fontWeight: "bold", verticalAlign: "middle" }}
                       >
                         {item.name}
                       </td>
                     )}
-
-                    <td style={td()}>{item.subName}</td>
-                    <td style={td({ textAlign: "center" })}>
-                      {item.valueType}
-                    </td>
-                    <td style={td({ textAlign: "center" })}>
-                      {item.min}
-                    </td>
-                    <td style={td({ textAlign: "center" })}>
-                      {item.max}
-                    </td>
-                    <td style={td({ textAlign: "center" })}>
-                      {item.same}
-                    </td>
-                    <td style={td({ textAlign: "center" })}>
-                      {item.tool}
-                    </td>
-                    <td colSpan={2}></td>
+                    <td colSpan={2} style={cell}>{item.subName}</td>
+                    <td style={{ ...cell, textAlign: "center" }}>{item.valueType}</td>
+                    <td style={{ ...cell, textAlign: "center" }}>{item.min || "-"}</td>
+                    <td style={{ ...cell, textAlign: "center" }}>{item.max || "-"}</td>
+                    <td style={{ ...cell, textAlign: "center" }}>{item.same || "-"}</td>
+                    <td colSpan={2} style={{ ...cell, textAlign: "center" }}>{item.tool}</td>
                   </tr>
                 );
               })}
-
-              {/* FOOTER */}
-              <tr>
-                <td colSpan={3} style={tdBold()}>
-                  Prepared By:
-                </td>
-                <td colSpan={3} style={tdBold()}>
-                  Reviewed By:
-                </td>
-                <td colSpan={2} style={tdBold()}>
-                  Approved By:
-                </td>
-                <td colSpan={2} style={tdBold()}>
-                  Date: {today}
-                </td>
+              {/* ── FOOTER ── */}
+              <tr style={{ fontWeight: "bold" }}>
+                <td colSpan={3} style={{ ...cell, height: "60px", verticalAlign: "top" }}>Prepared By:</td>
+                <td colSpan={3} style={{ ...cell, verticalAlign: "top" }}>Reviewed By:</td>
+                <td colSpan={3} style={{ ...cell, verticalAlign: "top" }}>Approved By:</td>
+                <td colSpan={3} style={{ ...cell, verticalAlign: "top" }}>Date: {today}</td>
               </tr>
 
             </tbody>

@@ -172,12 +172,7 @@ export default function QCChecklists() {
                   Checklist Items
                 </h3>
 
-                <button
-                  onClick={addItem}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-600"
-                >
-                  + Add Item
-                </button>
+                
               </div>
 
               {formData.items.length === 0 ? (
@@ -222,6 +217,12 @@ export default function QCChecklists() {
               >
                 {formData.id ? "Update Checklist" : "Save Checklist"}
               </button>
+              <button
+                  onClick={addItem}
+                  className="mt-6 ml-4 rounded-xl bg-[#44a83e] px-6 py-2 text-sm font-semibold text-white hover:bg-[#3c9437]"
+                >
+                  + Add Item
+                </button>
             </div>
           </div>
         </div>
