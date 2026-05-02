@@ -319,27 +319,6 @@ export default function Sidebar() {
             })}
           </ul>
         </nav>
-
-        {/* Footer */}
-        <div className="border-t border-slate-300 bg-white px-4 py-6 dark:border-[#162033] dark:bg-[#0b1220]">
-          <div
-            className={`flex items-center ${
-              isExpanded ? "gap-3" : "justify-center"
-            }`}
-          >
-            <CircleUserRound className="h-10 w-10 rounded-full bg-[#2d6e2a] text-white" />
-            {isExpanded && (
-              <div>
-                <h4 className="text-sm font-semibold text-slate-800 dark:text-white">
-                  Neelesh Gupta
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Super Admin
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
       </aside>
     </>
   );
