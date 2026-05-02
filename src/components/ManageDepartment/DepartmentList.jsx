@@ -17,9 +17,11 @@ import {
   Beaker,
 } from "lucide-react";
 import CreateDepartmentForm from "./CreateDepartmentForm";
+import ViewDepartment from "./ViewDepartment";
 
 export default function DepartmentList({ departments = [], onDelete, onAdd }) {
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
 
   const CATEGORY_META = {
     Engineering: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", icon: Tag },
@@ -35,9 +37,9 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
 
   return (
     <>
-      <div className="rounded-2xl border border-slate-200 dark:border-[#162033] bg-white dark:bg-[#0d1528] overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
         <div
-          className="px-6 py-5 border-b border-slate-200 dark:border-[#162033]"
+          className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
           style={{ backgroundColor: "#3a3c44" }}
         >
           <div className="flex items-center justify-between">
@@ -61,8 +63,8 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
 
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
-              style={{ backgroundColor: "#44a83e", color: "#fff" }}
+              className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+              style={{ backgroundColor: "#44a83e" }}
             >
               <UserPlus className="h-4 w-4" />
               Create Department
@@ -71,14 +73,14 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
         </div>
 
         {departments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-[#11182b] mb-4">
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-[#11182b]">
               <Building2 className="h-7 w-7 text-slate-400" />
             </div>
             <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
               No departments yet
             </p>
-            <p className="text-xs text-slate-400 mt-1 mb-4">
+            <p className="mb-4 mt-1 text-xs text-slate-400">
               Click "Create Department" to add your first department.
             </p>
             <button
@@ -95,10 +97,10 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#162033]">
-                  {["#", "Department", "Location", "Category", "Status", "Created On", "Actions"].map((h) => (
+                  {["#", "Department", "Location", "Category", "Head", "Status", "Created On", "Actions"].map((h) => (
                     <th
                       key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 whitespace-nowrap"
+                      className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"
                     >
                       {h}
                     </th>
@@ -108,27 +110,24 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
 
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
                 {departments.map((dept, idx) => {
-                  const meta = CATEGORY_META[dept.category] ?? CATEGORY_META["Engineering"];
+                  const meta = CATEGORY_META[dept.category] ?? CATEGORY_META.Engineering;
                   const CategoryIcon = meta.icon;
                   const isActive = dept.status === "active";
 
                   return (
                     <tr
                       key={dept.id}
-                      className="hover:bg-slate-50 dark:hover:bg-[#11182b] transition-colors"
+                      className="transition-colors hover:bg-slate-50 dark:hover:bg-[#11182b]"
                     >
                       <td className="px-5 py-4 text-xs text-slate-400">{idx + 1}</td>
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="flex h-9 w-9 items-center justify-center rounded-full text-white text-sm font-bold shrink-0"
-                            style={{ backgroundColor: "#3a3c44" }}
-                          >
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3a3c44] text-sm font-bold text-white">
                             {dept.name?.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                            <p className="whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">
                               {dept.name}
                             </p>
                             <p className="text-xs text-slate-400">
@@ -138,7 +137,7 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
                         <div className="flex items-center gap-1.5">
                           <MapPin className="h-4 w-4 text-slate-400" />
                           {dept.workLocation || "—"}
@@ -147,7 +146,7 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
 
                       <td className="px-5 py-4">
                         <span
-                          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-semibold"
                           style={{ backgroundColor: meta.bg, color: meta.color }}
                         >
                           <CategoryIcon className="h-3.5 w-3.5" />
@@ -155,9 +154,13 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                         </span>
                       </td>
 
+                      <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                        {dept.departmentHead || "—"}
+                      </td>
+
                       <td className="px-5 py-4">
                         <span
-                          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-semibold"
                           style={{
                             backgroundColor: isActive
                               ? "rgba(45,110,42,0.1)"
@@ -175,23 +178,26 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 text-xs text-slate-400 whitespace-nowrap">
+                      <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-400">
                         {dept.createdOn || "—"}
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-[#1b2740] px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#11182b] transition-colors whitespace-nowrap">
+                          <button
+                            onClick={() => setSelectedDepartment(dept)}
+                            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:border-[#1b2740] dark:text-slate-300 dark:hover:bg-[#11182b]"
+                          >
                             <Eye className="h-3.5 w-3.5" /> View
                           </button>
 
-                          <button className="flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-900/40 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors whitespace-nowrap">
+                          <button className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-900/40 dark:hover:bg-blue-900/20">
                             <Pencil className="h-3.5 w-3.5" /> Edit
                           </button>
 
                           <button
                             onClick={() => onDelete?.(dept.id)}
-                            className="flex items-center gap-1.5 rounded-lg border border-red-200 dark:border-red-900/40 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors whitespace-nowrap"
+                            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
                           </button>
@@ -210,6 +216,13 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
         <CreateDepartmentForm
           onAdd={onAdd}
           onClose={() => setShowCreate(false)}
+        />
+      )}
+
+      {selectedDepartment && (
+        <ViewDepartment
+          department={selectedDepartment}
+          onClose={() => setSelectedDepartment(null)}
         />
       )}
     </>

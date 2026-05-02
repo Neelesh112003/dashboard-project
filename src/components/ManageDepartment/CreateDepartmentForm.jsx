@@ -18,6 +18,7 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
     name: "",
     workLocation: "",
     category: "",
+    departmentHead: "",
     remarks: "",
     status: "active",
   };
@@ -34,6 +35,7 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
 
     if (!form.workLocation.trim()) e.workLocation = "Work location is required";
     if (!form.category) e.category = "Please select a category";
+    if (!form.departmentHead.trim()) e.departmentHead = "Department head is required";
 
     return e;
   };
@@ -79,9 +81,9 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
         onClick={onClose}
       />
 
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-[#0d1528] max-h-[90vh] flex flex-col">
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#0d1528]">
         <div
-          className="px-6 py-5 border-b border-slate-200 dark:border-[#162033] flex items-center gap-3 shrink-0"
+          className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
           style={{ backgroundColor: "#3a3c44" }}
         >
           <div
@@ -101,27 +103,27 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-white hover:bg-white/10 transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-white transition-colors hover:bg-white/10"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1">
-          <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-6 p-6">
             {successMsg ? (
-              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
                 <CheckCircle className="h-4 w-4 shrink-0" />
                 Department created successfully.
               </div>
             ) : null}
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100 dark:border-[#162033]">
+              <p className="mb-4 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:border-[#162033]">
                 Department Information
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <Field label="Department Name" required error={errors.name}>
                   <input
                     type="text"
@@ -183,12 +185,12 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
                         key={s}
                         type="button"
                         onClick={() => setForm({ ...form, status: s })}
-                        className={`flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium capitalize transition-all ${
+                        className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium capitalize transition-all ${
                           form.status === s
                             ? s === "active"
-                              ? "border-green-300 bg-green-50 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400"
-                              : "border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400"
-                            : "border-slate-200 dark:border-[#1b2740] bg-slate-50 dark:bg-[#11182b] text-slate-500"
+                              ? "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400"
+                              : "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400"
+                            : "border-slate-200 bg-slate-50 text-slate-500 dark:border-[#1b2740] dark:bg-[#11182b]"
                         }`}
                       >
                         <span
@@ -209,18 +211,31 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100 dark:border-[#162033]">
+              <p className="mb-4 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:border-[#162033]">
                 Additional Info
               </p>
 
               <div className="grid grid-cols-1 gap-5">
+                <Field label="Department Head" required error={errors.departmentHead}>
+                  <input
+                    type="text"
+                    placeholder="Enter department head name"
+                    value={form.departmentHead}
+                    onChange={(e) => {
+                      setForm({ ...form, departmentHead: e.target.value });
+                      setErrors({ ...errors, departmentHead: "" });
+                    }}
+                    className={inp("departmentHead")}
+                  />
+                </Field>
+
                 <Field label="Remarks">
                   <textarea
                     rows={3}
                     placeholder="Any notes about this department..."
                     value={form.remarks}
                     onChange={(e) => setForm({ ...form, remarks: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-[#1b2740] px-4 py-2.5 text-sm outline-none bg-slate-50 dark:bg-[#11182b] text-slate-800 dark:text-slate-100 resize-none"
+                    className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-100"
                   />
                 </Field>
               </div>
@@ -228,7 +243,7 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-[#162033] flex items-center gap-3 shrink-0">
+        <div className="flex shrink-0 items-center gap-3 border-t border-slate-100 px-6 py-4 dark:border-[#162033]">
           <button
             onClick={handleAdd}
             className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
@@ -243,7 +258,7 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
               setForm(initialForm);
               setErrors({});
             }}
-            className="rounded-xl border border-slate-200 dark:border-[#1b2740] px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#11182b] transition-all"
+            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-50 dark:border-[#1b2740] dark:text-slate-400 dark:hover:bg-[#11182b]"
           >
             Reset
           </button>
