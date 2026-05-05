@@ -71,7 +71,7 @@ export default function GodownManagement() {
                 className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-[#1b2740] dark:bg-[#11182b]"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-green-100 to-emerald-50 text-green-700 dark:from-green-900/30 dark:to-emerald-900/10 dark:text-green-400">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-linear-to-br from-green-100 to-emerald-50 text-green-700 dark:from-green-900/30 dark:to-emerald-900/10 dark:text-green-400">
                     <Warehouse className="h-5 w-5" />
                   </div>
 
