@@ -25,7 +25,6 @@ import CustomerReturns from "./components/customers/CustomerReturns";
 import CustomerSummary from "./components/customers/CustomerSummary";
 
 /* SUPPLIERS */
-import SuppliersList from "./components/suppliers/SuppliersList";
 import SupplierPO from "./components/suppliers/SupplierPO";
 import Purchases from "./components/suppliers/Purchases";
 import SupplierReturns from "./components/suppliers/SupplierReturns";
@@ -83,6 +82,8 @@ import SoftwareTrail from "./components/details/SoftwareTrail";
 import CashBook from "./components/transactions/CashBook";
 import BankBook from "./components/transactions/BankBook";
 import ManageBanks from "./components/transactions/ManageBanks";
+import SupplierPage from "./components/pages/SupplierPage";
+import CustomerPage from "./components/pages/CustomerPage";
 
 
 export default function App() {
@@ -106,7 +107,7 @@ export default function App() {
           <Route path="/departments" element={<Departments />} />
 
           {/* CUSTOMERS */}
-          <Route path="/customers/list" element={<CustomersList />} />
+          <Route path="/customers/list" element={<CustomerPage />} />
           <Route
             path="/customers/quotations"
             element={<CustomerQuotations />}
@@ -120,7 +121,7 @@ export default function App() {
           <Route path="/customers/summary" element={<CustomerSummary />} />
 
           {/* SUPPLIERS */}
-          <Route path="/suppliers/list" element={<SuppliersList />} />
+          <Route path="/suppliers/list" element={<SupplierPage/>} />
           <Route path="/suppliers/purchase-orders" element={<SupplierPO />} />
           <Route path="/suppliers/purchases" element={<Purchases />} />
           <Route
