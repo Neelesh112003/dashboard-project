@@ -1,404 +1,583 @@
-import { useState, useRef } from "react";
-import {
-  Plus,
-  Calendar,
-  ClipboardList,
-  Package,
-  Hash,
-  CheckCircle2,
-} from "lucide-react";
-import CreateTable from "../CreateTable";
+import { useState } from "react";
+import { CheckCircle2, AlertCircle, Eye, Filter, Search, X } from "lucide-react";
 
-// Dummy checklist templates
-const checklistTemplates = [
+// Dummy Quality Check Data
+const DUMMY_QC_ITEMS = [
   {
     id: 1,
-    checklistName: "Mobile QC",
-    applicableProduct: "Mobile",
-    items: [
-      {
-        name: "Display",
-        subName: "Brightness",
-        valueType: "Numeric",
-        min: 10,
-        max: 100,
-        tool: "Lux Meter",
-      },
-      {
-        name: "Display",
-        subName: "Dead Pixel",
-        valueType: "Character",
-        same: "No",
-        tool: "Visual",
-      },
-    ],
+    grnNumber: "GRN-24101501",
+    productName: "Microcontroller Unit",
+    hsn: "8542.31",
+    receivedQty: 500,
+    inspectedQty: 450,
+    defectiveQty: 50,
+    units: "Pcs",
+    qcStatus: "Passed with Defects",
+    inspecterName: "Rajesh Kumar",
+    inspectionDate: "2024-10-15",
+    remarks: "50 units found faulty - thermal issues",
+  },
+  {
+    id: 2,
+    grnNumber: "GRN-24101502",
+    productName: "Capacitor 100uF",
+    hsn: "8532.24",
+    receivedQty: 1000,
+    inspectedQty: 1000,
+    defectiveQty: 0,
+    units: "Pcs",
+    qcStatus: "Passed",
+    inspecterName: "Suresh Patil",
+    inspectionDate: "2024-10-15",
+    remarks: "All items verified and passed QC",
+  },
+  {
+    id: 3,
+    grnNumber: "GRN-24101503",
+    productName: "PCB Board Single Layer",
+    hsn: "8534.31",
+    receivedQty: 250,
+    inspectedQty: 0,
+    defectiveQty: 0,
+    units: "Pcs",
+    qcStatus: "Pending",
+    inspecterName: "-",
+    inspectionDate: "-",
+    remarks: "Awaiting quality inspection",
+  },
+  {
+    id: 4,
+    grnNumber: "GRN-24101504",
+    productName: "Solder Wire Lead Free",
+    hsn: "7408.11",
+    receivedQty: 100,
+    inspectedQty: 100,
+    defectiveQty: 10,
+    units: "Kg",
+    qcStatus: "Rejected",
+    inspecterName: "Amit Singh",
+    inspectionDate: "2024-10-18",
+    remarks: "Quality standards not met - contamination detected",
   },
 ];
 
-export default function GateQC() {
-  const dateRef = useRef(null);
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
-    grn: "",
-    product: "",
-    checklistId: "",
+export default function QualityControl() {
+  const [qcItems, setQcItems] = useState(DUMMY_QC_ITEMS);
+  const [searchInput, setSearchInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+  const [viewDetails, setViewDetails] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  const filteredItems = qcItems.filter(item => {
+    const text = searchInput.toLowerCase();
+    const matchSearch = 
+      item.grnNumber.toLowerCase().includes(text) ||
+      item.productName.toLowerCase().includes(text) ||
+      item.hsn.includes(text);
+    const matchStatus = statusFilter ? item.qcStatus === statusFilter : true;
+    return matchSearch && matchStatus;
   });
 
-  const [items, setItems] = useState([]);
-  const [qcList, setQcList] = useState([]);
-  const [status, setStatus] = useState("");
-
-  const handleChecklistChange = (id) => {
-    const selected = checklistTemplates.find((c) => c.id == id);
-    setForm((prev) => ({
-      ...prev,
-      checklistId: id,
-      product: selected?.applicableProduct || "",
-    }));
-
-    const mappedItems =
-      selected?.items.map((item) => ({
-        ...item,
-        value: "",
-        result: "",
-      })) || [];
-
-    setItems(mappedItems);
+  const handleEditStart = (item) => {
+    setEditingId(item.id);
+    setEditForm({ ...item });
   };
 
-  const handleValueChange = (index, value) => {
-    const updated = [...items];
-    const item = updated[index];
-    item.value = value;
-
-    if (item.valueType === "Numeric") {
-      const num = Number(value);
-      item.result = num >= item.min && num <= item.max ? "PASS" : "FAIL";
-    } else {
-      item.result =
-        value.toLowerCase() === item.same.toLowerCase() ? "PASS" : "FAIL";
-    }
-    setItems(updated);
+  const handleEditSave = () => {
+    setQcItems(prev => prev.map(item => 
+      item.id === editingId ? editForm : item
+    ));
+    setEditingId(null);
+    setEditForm({});
   };
 
-  const total = items.length;
-  const passed = items.filter((i) => i.result === "PASS").length;
-  const failed = total - passed;
-  const percentage = total ? ((passed / total) * 100).toFixed(2) : 0;
-
-  const handleSave = () => {
-    if (!form.grn || !status) return alert("Please fill GRN and Status");
-
-    const newEntry = {
-      id: Date.now(),
-      date: form.date,
-      grn: form.grn,
-      product: form.product,
-      percentage: `${percentage}%`,
-      status,
-    };
-
-    setQcList((prev) => [newEntry, ...prev]);
-    setItems([]);
-    setStatus("");
-    setForm({
-      date: new Date().toISOString().split("T")[0],
-      grn: "",
-      product: "",
-      checklistId: "",
-    });
+  const handleEditCancel = () => {
+    setEditingId(null);
+    setEditForm({});
   };
 
-  const columns = [
-    { label: "Date", key: "date" },
-    { label: "GRN", key: "grn" },
-    { label: "Product", key: "product" },
-    { label: "Result %", key: "percentage" },
-    { label: "Status", key: "status" },
-  ];
-
-  const [grnLoading, setGrnLoading] = useState(false);
-
-  const validateGRN = async () => {
-    if (!form.grn) {
-      alert("Enter GRN first");
-      return;
+  const getQCStatusColor = (status) => {
+    switch (status) {
+      case "Passed":
+        return { bg: "rgba(45,110,42,0.1)", color: "#2d6e2a", dot: "#2d6e2a" };
+      case "Passed with Defects":
+        return { bg: "rgba(249,115,22,0.1)", color: "#c2410c", dot: "#ea580c" };
+      case "Rejected":
+        return { bg: "rgba(239,68,68,0.1)", color: "#b91c1c", dot: "#dc2626" };
+      case "Pending":
+        return { bg: "rgba(59,130,246,0.1)", color: "#1e40af", dot: "#2563eb" };
+      default:
+        return { bg: "rgba(107,114,128,0.1)", color: "#6b7280", dot: "#9ca3af" };
     }
+  };
 
-    try {
-      setGrnLoading(true);
-
-      // 🔥 Replace with your real API
-      const res = await fetch(`/api/grn/${form.grn}`);
-      const data = await res.json();
-
-      if (!data.success) {
-        alert("Invalid GRN");
-        return;
-      }
-
-      // ✅ Example response handling
-      setForm((prev) => ({
-        ...prev,
-        product: data.product, // auto fill
-      }));
-    } catch (err) {
-      console.error(err);
-
-      // 🧪 Mock fallback (remove later)
-      setForm((prev) => ({
-        ...prev,
-        product: "Mobile",
-      }));
-
-      alert("Mock: GRN Validated");
-    } finally {
-      setGrnLoading(false);
-    }
+  const getPassPercentage = (inspected, defective) => {
+    if (inspected === 0) return 0;
+    return Math.round(((inspected - defective) / inspected) * 100);
   };
 
   return (
-    <div className="p-6 space-y-6 dark:text-white">
-      {/* 🔹 HEADER */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-            Gate QC Entry
-          </h2>
-          <p className="text-sm text-slate-500">
-            Perform quality checks on incoming material
-          </p>
-        </div>
+    <div style={{ padding: 32 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 700, color: "#1e293b" }}>
+          Quality Control
+        </h2>
+        <p style={{ margin: 0, fontSize: 14, color: "#64748b" }}>
+          Monitor and verify quality of received items
+        </p>
       </div>
 
-      {/* 🔹 STYLIZED FORM CARD */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-        {/* CARD HEADER */}
-        <div
-          className="border-b border-slate-200 px-6 py-5 flex items-center justify-between dark:border-[#162033]"
-          style={{ backgroundColor: "#3a3c44" }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-              <ClipboardList className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">QC Form</h2>
-              <p className="text-xs text-white/60">Enter inspection details</p>
-            </div>
+      {/* Summary Stats */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: 16,
+        marginBottom: 32,
+      }}>
+        {[
+          { label: "Total Items", value: qcItems.length, color: "#3b82f6" },
+          { label: "Passed", value: qcItems.filter(i => i.qcStatus === "Passed").length, color: "#2d6e2a" },
+          { label: "Defects Found", value: qcItems.filter(i => i.qcStatus === "Passed with Defects").length, color: "#ea580c" },
+          { label: "Rejected", value: qcItems.filter(i => i.qcStatus === "Rejected").length, color: "#dc2626" },
+          { label: "Pending", value: qcItems.filter(i => i.qcStatus === "Pending").length, color: "#2563eb" },
+        ].map((stat, idx) => (
+          <div key={idx} style={{
+            backgroundColor: "#fff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 12,
+            padding: 16,
+          }}>
+            <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#64748b" }}>
+              {stat.label}
+            </p>
+            <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: stat.color }}>
+              {stat.value}
+            </p>
           </div>
+        ))}
+      </div>
+
+      {/* Search and Filter */}
+      <div style={{ marginBottom: 24, display: "flex", gap: 12 }}>
+        <div style={{ flex: 1, position: "relative" }}>
+          <Search style={{
+            position: "absolute",
+            left: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: 16,
+            height: 16,
+            color: "#9ca3af",
+          }} />
+          <input
+            type="text"
+            placeholder="Search GRN, Product, HSN..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px 12px 12px 40px",
+              borderRadius: 10,
+              border: "1px solid #e2e8f0",
+              backgroundColor: "#fff",
+              fontSize: 14,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
         </div>
+        <button
+          onClick={() => setShowFilter(!showFilter)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 20px",
+            borderRadius: 10,
+            border: "1px solid " + (showFilter ? "#44a83e" : "#e2e8f0"),
+            backgroundColor: showFilter ? "#f0fdf4" : "#fff",
+            color: showFilter ? "#44a83e" : "#475569",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Filter style={{ width: 16, height: 16 }} />
+          Filter
+        </button>
+      </div>
 
-        {/* FORM BODY */}
-        <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-4">
-          {/* Date Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">
-              Date
-            </label>
+      {/* Filter Panel */}
+      {showFilter && (
+        <div style={{
+          backgroundColor: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 10,
+          padding: 16,
+          marginBottom: 24,
+        }}>
+          <label style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#64748b", display: "block", marginBottom: 8 }}>
+            QC Status
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: "1px solid #e2e8f0",
+              fontSize: 13,
+              outline: "none",
+            }}
+          >
+            <option value="">All Status</option>
+            <option value="Passed">Passed</option>
+            <option value="Passed with Defects">Passed with Defects</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+      )}
 
-            <div
-              className="relative cursor-pointer"
-              onClick={() => dateRef.current?.showPicker()} // 🔥 opens picker on click
-            >
-              <Calendar className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      {/* QC Items Table */}
+      <div style={{
+        overflowX: "auto",
+        borderRadius: 12,
+        border: "1px solid #e2e8f0",
+        backgroundColor: "#fff",
+      }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "left" }}>
+                GRN / Product
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "left" }}>
+                HSN Code
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "center" }}>
+                Received
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "center" }}>
+                Inspected
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "center" }}>
+                Defective
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "center" }}>
+                Pass %
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "left" }}>
+                Status
+              </th>
+              <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", textAlign: "center" }}>
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map((item) => {
+              const statusColor = getQCStatusColor(item.qcStatus);
+              const passPercent = getPassPercentage(item.inspectedQty, item.defectiveQty);
+              const isEditing = editingId === item.id;
 
-              <input
-                ref={dateRef}
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none transition-all dark:border-[#1b2740] dark:bg-[#11182b]"
-              />
-            </div>
-          </div>
+              return (
+                <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9", backgroundColor: isEditing ? "#f8fafc" : "inherit" }}>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div>
+                      <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "#1e293b", fontFamily: "monospace" }}>
+                        {item.grnNumber}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>
+                        {item.productName}
+                      </p>
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ fontFamily: "monospace", fontSize: 12, backgroundColor: "#f1f5f9", color: "#475569", padding: "2px 8px", borderRadius: 4 }}>
+                      {item.hsn}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#334155", textAlign: "center" }}>
+                    {item.receivedQty}
+                  </td>
+                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#334155", textAlign: "center" }}>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.receivedQty}
+                        value={editForm.inspectedQty}
+                        onChange={(e) => setEditForm({ ...editForm, inspectedQty: parseInt(e.target.value) || 0 })}
+                        style={{
+                          width: 70,
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #e2e8f0",
+                          fontSize: 13,
+                          textAlign: "center",
+                          outline: "none",
+                        }}
+                      />
+                    ) : (
+                      item.inspectedQty
+                    )}
+                  </td>
+                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#ef4444", textAlign: "center" }}>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max={editForm.inspectedQty}
+                        value={editForm.defectiveQty}
+                        onChange={(e) => setEditForm({ ...editForm, defectiveQty: parseInt(e.target.value) || 0 })}
+                        style={{
+                          width: 70,
+                          padding: "6px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #e2e8f0",
+                          fontSize: 13,
+                          textAlign: "center",
+                          outline: "none",
+                        }}
+                      />
+                    ) : (
+                      item.defectiveQty
+                    )}
+                  </td>
+                  <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                    <div style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 60,
+                      height: 60,
+                      borderRadius: "50%",
+                      backgroundColor: `${passPercent === 100 ? "#f0fdf4" : passPercent >= 90 ? "#fef3c7" : "#ffecec"}`,
+                      position: "relative",
+                    }}>
+                      <svg style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="16" fill="none" stroke="#e5e7eb" strokeWidth="2" />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="16"
+                          fill="none"
+                          stroke={passPercent === 100 ? "#2d6e2a" : passPercent >= 90 ? "#c2410c" : "#ef4444"}
+                          strokeWidth="2"
+                          strokeDasharray={`${passPercent * 1.0064} 100.53`}
+                        />
+                      </svg>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: passPercent === 100 ? "#2d6e2a" : passPercent >= 90 ? "#c2410c" : "#ef4444" }}>
+                        {passPercent}%
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "4px 10px",
+                      backgroundColor: statusColor.bg,
+                      color: statusColor.color,
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: statusColor.dot }} />
+                      {item.qcStatus}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={handleEditSave}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 6,
+                              border: "none",
+                              backgroundColor: "#44a83e",
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={handleEditCancel}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 6,
+                              border: "1px solid #e2e8f0",
+                              backgroundColor: "#fff",
+                              color: "#475569",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setViewDetails(item)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 6,
+                              border: "1px solid #e2e8f0",
+                              backgroundColor: "#fff",
+                              color: "#475569",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Eye style={{ width: 12, height: 12 }} />
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleEditStart(item)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 6,
+                              border: "1px solid #e2e8f0",
+                              backgroundColor: "#fff",
+                              color: "#475569",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-          {/* GRN Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">
-              GRN Number
-            </label>
+      {/* View Details Modal */}
+      {viewDetails && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setViewDetails(null)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 550,
+              borderRadius: 16,
+              overflow: "hidden",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              backgroundColor: "#fff",
+              animation: "slideUp 0.3s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <style>{`@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  placeholder="Enter GRN"
-                  value={form.grn}
-                  onChange={(e) => setForm({ ...form, grn: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
-                />
-              </div>
-
-              {/* 🔥 VALIDATE BUTTON */}
+            <div style={{ padding: "20px 24px", backgroundColor: "#44a83e", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fff" }}>
+                Quality Control Details
+              </h3>
               <button
-                onClick={validateGRN}
-                className="flex items-center  rounded-xl bg-[#44a83e] px-3 py-1 text-sm font-semibold text-white transition-all hover:bg-[#3c9437] active:scale-95 shadow-lg shadow-green-500/20"
+                onClick={() => setViewDetails(null)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: "none",
+                  backgroundColor: "transparent",
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
-                {grnLoading ? "..." : "Check"}
+                <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
-          </div>
 
-          {/* Product Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">
-              Product
-            </label>
-            <div className="relative">
-              <Package className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={form.product}
-                readOnly
-                placeholder="Product auto-fills"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm dark:border-[#1b2740] dark:bg-[#11182b]"
-              />
-            </div>
-          </div>
-
-          {/* Checklist Selection */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">
-              Select Checklist
-            </label>
-            <div className="relative">
-              <CheckCircle2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <select
-                value={form.checklistId}
-                onChange={(e) => handleChecklistChange(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
-              >
-                <option value="">Choose Template</option>
-                {checklistTemplates.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.checklistName}
-                  </option>
-                ))}
-              </select>
+            <div style={{ padding: "24px" }}>
+              {[
+                { label: "GRN Number", value: viewDetails.grnNumber, mono: true },
+                { label: "Product Name", value: viewDetails.productName },
+                { label: "HSN Code", value: viewDetails.hsn, mono: true },
+                { label: "Received Quantity", value: `${viewDetails.receivedQty} ${viewDetails.units}` },
+                { label: "Inspected Quantity", value: `${viewDetails.inspectedQty} ${viewDetails.units}` },
+                { label: "Defective Quantity", value: `${viewDetails.defectiveQty} ${viewDetails.units}` },
+                { label: "Pass Percentage", value: `${getPassPercentage(viewDetails.inspectedQty, viewDetails.defectiveQty)}%` },
+                { label: "QC Status", value: viewDetails.qcStatus, status: true },
+                { label: "Inspector Name", value: viewDetails.inspecterName },
+                { label: "Inspection Date", value: viewDetails.inspectionDate === "-" ? "-" : new Date(viewDetails.inspectionDate).toLocaleDateString() },
+                { label: "Remarks", value: viewDetails.remarks },
+              ].map((field, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#64748b", marginRight: 12 }}>
+                    {field.label}
+                  </span>
+                  {field.mono ? (
+                    <span style={{ fontFamily: "monospace", fontSize: 13, backgroundColor: "#f1f5f9", color: "#475569", padding: "2px 8px", borderRadius: 4 }}>
+                      {field.value}
+                    </span>
+                  ) : field.status ? (
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "4px 10px",
+                      backgroundColor: getQCStatusColor(field.value).bg,
+                      color: getQCStatusColor(field.value).color,
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: getQCStatusColor(field.value).dot }} />
+                      {field.value}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 13, color: "#334155", fontWeight: 500, textAlign: "right", maxWidth: 250, wordBreak: "break-word" }}>
+                      {field.value}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
-
-        {/* 🔹 INSPECTION TABLE SECTION */}
-        {items.length > 0 && (
-          <div className="border-t border-slate-100 px-6 py-6 dark:border-[#1b2740]">
-            <h3 className="mb-4 text-sm font-bold text-slate-700 dark:text-slate-200">
-              Inspection Parameters
-            </h3>
-            <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-[#1b2740]">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 dark:bg-[#11182b]">
-                  <tr className="text-slate-500">
-                    <th className="p-3 font-semibold">S.No</th>
-                    <th className="p-3 font-semibold">Parameter</th>
-                    <th className="p-3 font-semibold">Ideal Value</th>
-                    <th className="p-3 font-semibold">Tool</th>
-                    <th className="p-3 font-semibold text-center">
-                      Observed Value
-                    </th>
-                    <th className="p-3 font-semibold text-center">Result</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#1b2740]">
-                  {items.map((item, i) => (
-                    <tr
-                      key={i}
-                      className="hover:bg-slate-50/50 dark:hover:bg-white/5"
-                    >
-                      <td className="p-3">{i + 1}</td>
-                      <td className="p-3">
-                        <div className="font-medium text-slate-800 dark:text-slate-200">
-                          {item.name}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {item.subName}
-                        </div>
-                      </td>
-                      <td className="p-3 text-slate-600">
-                        {item.valueType === "Numeric"
-                          ? `${item.min}-${item.max}`
-                          : item.same}
-                      </td>
-                      <td className="p-3 text-slate-500 italic text-xs">
-                        {item.tool}
-                      </td>
-                      <td className="p-3 text-center">
-                        <input
-                          className="w-24 rounded-lg border border-slate-200 p-1.5 text-center text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#0d1528]"
-                          value={item.value}
-                          onChange={(e) => handleValueChange(i, e.target.value)}
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        {item.result === "PASS" ? (
-                          <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-600 uppercase">
-                            Pass
-                          </span>
-                        ) : item.result === "FAIL" ? (
-                          <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-bold text-red-600 uppercase">
-                            Fail
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 🔻 FOOTER SUMMARY */}
-            <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-slate-100 pt-6 dark:border-[#1b2740]">
-              <div className="flex gap-6 text-sm">
-                <div className="space-y-1">
-                  <p className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">
-                    Pass %
-                  </p>
-                  <p className="text-xl font-bold text-[#44a83e]">
-                    {percentage}%
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">
-                    Items (P/F)
-                  </p>
-                  <p className="text-xl font-bold text-slate-700 dark:text-slate-200">
-                    {passed} / {failed}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
-                >
-                  <option value="">Final Status</option>
-                  <option value="Selected">Selected</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-8 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#3c9437] active:scale-95 shadow-lg shadow-green-500/20"
-                >
-                  <Plus size={18} />
-                  Save QC Report
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 🔹 RESULT TABLE */}
-      <CreateTable
-        title="QC Inspection History"
-        data={qcList}
-        columns={columns}
-      />
+      )}
     </div>
   );
 }
