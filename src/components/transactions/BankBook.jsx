@@ -33,9 +33,13 @@ export default function BankBook() {
     date: "",
     particular: "",
     amount: "",
+    branch: "",
+    branchAddress: "",
     bank: "SBI",
     type: "entry",
   });
+  //which branch is selected in the filter dropdown
+  const [filterBranch, setFilterBranch] = useState("");
 
   // Which bank is selected in the filter dropdown
   const [filterBank, setFilterBank] = useState("");
@@ -83,6 +87,8 @@ export default function BankBook() {
     setFormValues({
       date: "",
       particular: "",
+      branch: "",
+      branchAddress: "",
       amount: "",
       bank: bankOptions[0],
       type: "entry",
@@ -155,6 +161,12 @@ export default function BankBook() {
   if (filterBank !== "") {
     visibleTransactions = visibleTransactions.filter(
       (t) => t.bank === filterBank,
+    );
+  }
+  //if a branch is selected in the dropdown , apply it
+  if (filterBranch !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => t.branch === filterBranch,
     );
   }
 
@@ -314,6 +326,34 @@ export default function BankBook() {
                     </select>
                   </div>
                 </div>
+                {/* Branch Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Branch Name
+                  </label>
+
+                  <input
+                    type="text"
+                    name="branch"
+                    value={formValues.branch}
+                    onChange={handleFormChange}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm"
+                  />
+                </div>
+                {/* Branch Address */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Branch Address
+                  </label>
+
+                  <input
+                    type="text"
+                    name="branchAddress"
+                    value={formValues.branchAddress}
+                    onChange={handleFormChange}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm"
+                  />
+                </div>
 
                 {/* Type */}
                 <div className="space-y-1.5">
@@ -391,6 +431,8 @@ export default function BankBook() {
                     { label: "Particular", key: "particular" },
                     { label: "Amount", key: "amount" },
                     { label: "Bank", key: "bank" },
+                    { label: "Branch", key: "branch" },
+                    { label: "Branch Address", key: "branchAddress" },
                     { label: "Type", key: "type" },
                   ]}
                   data={visibleTransactions}
@@ -435,6 +477,19 @@ export default function BankBook() {
                 <option key={type}>{type}</option>
               ))}
             </select>
+            <select
+              value={filterBranch}
+              onChange={(e) => {
+                setFilterBranch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs"
+            >
+              <option value="">All branch</option>
+              {getUniqueValues("branch").map((b) => (
+                <option key={b}>{b}</option>
+              ))}
+            </select>
           </div>
 
           {/* Table */}
@@ -447,6 +502,8 @@ export default function BankBook() {
                     "Particular",
                     "Amount",
                     "Bank",
+                    "Branch",
+                    "Branch Address",
                     "Type",
                     "Actions",
                   ].map((heading) => (
@@ -482,6 +539,8 @@ export default function BankBook() {
                       <td className="px-6 py-4">{row.particular}</td>
                       <td className="px-6 py-4">{row.amount}</td>
                       <td className="px-6 py-4">{row.bank}</td>
+                      <td className="px-6 py-4">{row.branch}</td>
+                      <td className="px-6 py-4">{row.branchAddress}</td>
                       <td className="px-6 py-4">{row.type}</td>
                       <td className="px-6 py-4">
                         {/* Remove this transaction */}
