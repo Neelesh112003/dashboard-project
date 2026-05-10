@@ -1,17 +1,21 @@
 import { useState } from "react";
 import {
-  Plus, Upload, Trash2, Package,
-  Boxes, Hash, Filter,
-  ChevronLeft, ChevronRight,
+  Plus,
+  Upload,
+  Trash2,
+  Package,
+  Boxes,
+  Hash,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ExportTable from "../ExportTable";
-
 
 // -------------------------------------------------------
 // How many rows to show at a time in the table
 // -------------------------------------------------------
 const ITEMS_PER_PAGE = 10;
-
 
 // -------------------------------------------------------
 // Default empty values for the form
@@ -20,18 +24,33 @@ const ITEMS_PER_PAGE = 10;
 const emptyForm = {
   productId: "",
 
-  productCode: "",        // e.g. "PRD001"
-  productHSN: "",         // HSN tax code number
-  productName: "",        // e.g. "Blue Cotton Shirt"
+  productCode: "",
+  productHSN: "",
+  productName: "",
+  productTrailName: "",
 
-  type: "",               // free text type
-  productType: "Raw Material",  // dropdown default
-
+  type: "",
   category: "",
+
+  productType: "Raw Material",
+  productSubType: "",
+
   subType: "",
   subCategory: "",
 
-  productStatus: "Active",   // dropdown default
+  mainUnit: "",
+  subUnit: "",
+
+  unitsRelationMainUnit: "",
+  unitsRelationSubUnit: "",
+
+  size: "",
+  color: "",
+
+  salesRate: "",
+  purchaseRate: "",
+
+  productStatus: "Active",
 
   productGroupId: "",
   productGroupName: "",
@@ -41,21 +60,13 @@ const emptyForm = {
   hsnGroupName: "",
   hsnGroupCode: "",
 
-  mainUnit: "",
-  subUnit: "",
-
-  size: "",
-  color: "",
-
-  productDetails: "",    // description / notes
+  productDetails: "",
 };
-
 
 // -------------------------------------------------------
 // Main Component
 // -------------------------------------------------------
 export default function ProductList() {
-
   // Controls whether the Add form is visible or hidden
   const [showForm, setShowForm] = useState(false);
 
@@ -79,6 +90,25 @@ export default function ProductList() {
   // Tracks which page we are on in the table
   const [currentPage, setCurrentPage] = useState(1);
 
+  //columns state which to show and which to hide
+  const [visibleColumns, setVisibleColumns] = useState({
+    productId: true,
+    productCode: true,
+    productName: true,
+    productHSN: true,
+    type: true,
+    category: true,
+    productType: true,
+    productSubType: true,
+    subCategory: true,
+    mainUnit: true,
+    subUnit: true,
+    salesRate: true,
+    purchaseRate: true,
+    productStatus: true,
+    productGroupName: true,
+    actions: true,
+  });
 
   // -------------------------------------------------------
   // When user types in any form input or selects a dropdown
@@ -92,14 +122,12 @@ export default function ProductList() {
     });
   }
 
-
   // -------------------------------------------------------
   // Reset the form back to all empty/default values
   // -------------------------------------------------------
   function resetForm() {
     setFormData(emptyForm);
   }
-
 
   // -------------------------------------------------------
   // When user clicks "Create Product" to save a new product
@@ -117,8 +145,8 @@ export default function ProductList() {
     // Build the new product row to add to the table
     const newProduct = {
       ...formData,
-      id: Date.now(),                    // unique id using current timestamp
-      productId: products.length + 1,    // auto incrementing display id
+      id: Date.now(), // unique id using current timestamp
+      productId: products.length + 1, // auto incrementing display id
     };
 
     // Add the new product to the top of the list
@@ -129,7 +157,6 @@ export default function ProductList() {
     setShowForm(false);
   }
 
-
   // -------------------------------------------------------
   // When user clicks the Delete button on a row
   // -------------------------------------------------------
@@ -138,7 +165,6 @@ export default function ProductList() {
     const updatedList = products.filter((item) => item.id !== id);
     setProducts(updatedList);
   }
-
 
   // -------------------------------------------------------
   // When user imports a CSV file
@@ -187,7 +213,6 @@ export default function ProductList() {
     reader.readAsText(file);
   }
 
-
   // -------------------------------------------------------
   // Filter and search the table rows
   // -------------------------------------------------------
@@ -197,33 +222,40 @@ export default function ProductList() {
 
   // Apply productType filter if one is selected
   if (filters.productType !== "") {
-    filteredList = filteredList.filter((item) => item.productType === filters.productType);
+    filteredList = filteredList.filter(
+      (item) => item.productType === filters.productType,
+    );
   }
 
   // Apply category filter if one is selected
   if (filters.category !== "") {
-    filteredList = filteredList.filter((item) => item.category === filters.category);
+    filteredList = filteredList.filter(
+      (item) => item.category === filters.category,
+    );
   }
 
   // Apply productGroupName filter if one is selected
   if (filters.productGroupName !== "") {
-    filteredList = filteredList.filter((item) => item.productGroupName === filters.productGroupName);
+    filteredList = filteredList.filter(
+      (item) => item.productGroupName === filters.productGroupName,
+    );
   }
 
   // Apply productStatus filter if one is selected
   if (filters.productStatus !== "") {
-    filteredList = filteredList.filter((item) => item.productStatus === filters.productStatus);
+    filteredList = filteredList.filter(
+      (item) => item.productStatus === filters.productStatus,
+    );
   }
 
   // Apply search: keep rows where any column contains the search text
   if (search !== "") {
     filteredList = filteredList.filter((item) =>
       Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(search.toLowerCase())
-      )
+        String(val).toLowerCase().includes(search.toLowerCase()),
+      ),
     );
   }
-
 
   // -------------------------------------------------------
   // Pagination — split filteredList into pages
@@ -232,9 +264,8 @@ export default function ProductList() {
 
   const currentPageRows = filteredList.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
-
 
   // -------------------------------------------------------
   // Get unique values for a column (used in filter dropdowns)
@@ -244,13 +275,11 @@ export default function ProductList() {
     return [...new Set(products.map((row) => row[key]))];
   }
 
-
   // -------------------------------------------------------
   // RENDER
   // -------------------------------------------------------
   return (
     <div className="space-y-8">
-
       {/* Top Buttons — Add Product and Close */}
       <div className="flex gap-3">
         <button
@@ -272,14 +301,12 @@ export default function ProductList() {
         )}
       </div>
 
-
       {/* ========================= */}
       {/* ADD FORM                  */}
       {/* Only shows when showForm is true */}
       {/* ========================= */}
       {showForm && (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
           {/* Form Card Header */}
           <div
             className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -290,7 +317,9 @@ export default function ProductList() {
                 <Plus className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">Add New Product</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  Add New Product
+                </h2>
                 <p className="text-xs text-white/60">Fill product details</p>
               </div>
             </div>
@@ -311,7 +340,6 @@ export default function ProductList() {
           {/* Form Fields */}
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2 lg:grid-cols-3">
-
               {/* Product Code */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -468,7 +496,90 @@ export default function ProductList() {
                   </select>
                 </div>
               </div>
+              {/*product trail name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Product Trail Name
+                </label>
 
+                <input
+                  type="text"
+                  name="productTrailName"
+                  value={formData.productTrailName}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm outline-none"
+                />
+              </div>
+              {/*product sub type  */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Product Sub Type
+                </label>
+
+                <input
+                  type="text"
+                  name="productSubType"
+                  value={formData.productSubType}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm outline-none"
+                />
+              </div>
+              {/*units related to mian unit */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Units Relation Main Unit
+                </label>
+
+                <input
+                  type="text"
+                  name="unitsRelationMainUnit"
+                  value={formData.unitsRelationMainUnit}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm outline-none"
+                />
+              </div>
+              {/*units related to sub unit */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Units Relation Sub Unit
+                </label>
+
+                <input
+                  type="text"
+                  name="unitsRelationSubUnit"
+                  value={formData.unitsRelationSubUnit}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm outline-none"
+                />
+              </div>
+              {/*sales rate */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Sales Rate
+                </label>
+
+                <input
+                  type="number"
+                  name="salesRate"
+                  value={formData.salesRate}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm outline-none"
+                />
+              </div>
+              {/*purchase rate */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Purchase Rate
+                </label>
+
+                <input
+                  type="number"
+                  name="purchaseRate"
+                  value={formData.purchaseRate}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm outline-none"
+                />
+              </div>
               {/* Description — spans full width */}
               <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -482,7 +593,6 @@ export default function ProductList() {
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
                 />
               </div>
-
             </div>
 
             {/* Submit Button */}
@@ -496,16 +606,13 @@ export default function ProductList() {
               </button>
             </div>
           </form>
-
         </div>
       )}
-
 
       {/* ========================= */}
       {/* PRODUCT LIST TABLE        */}
       {/* ========================= */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
         {/* Table Card Header */}
         <div
           className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -517,8 +624,12 @@ export default function ProductList() {
                 <Boxes className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">Product List</h2>
-                <p className="text-xs text-white/60">{filteredList.length} items</p>
+                <h2 className="text-lg font-semibold text-white">
+                  Product List
+                </h2>
+                <p className="text-xs text-white/60">
+                  {filteredList.length} items
+                </p>
               </div>
             </div>
 
@@ -605,30 +716,139 @@ export default function ProductList() {
               <option key={val}>{val}</option>
             ))}
           </select>
+          {/* Hide / Show Columns */}
+          
+          <div className="flex flex-wrap gap-2 ml-auto">
+            {Object.keys(visibleColumns).map((key) => (
+              <label
+                key={key}
+                className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleColumns[key]}
+                  onChange={() =>
+                    setVisibleColumns({
+                      ...visibleColumns,
+                      [key]: !visibleColumns[key],
+                    })
+                  }
+                />
+                {key}
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">HSN</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Group</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Actions</th>
-              </tr>
+              {visibleColumns.productId && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  ID
+                </th>
+              )}
+
+              {visibleColumns.productCode && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Code
+                </th>
+              )}
+
+              {visibleColumns.productName && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Name
+                </th>
+              )}
+
+              {visibleColumns.productHSN && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  HSN
+                </th>
+              )}
+
+              {visibleColumns.type && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Type
+                </th>
+              )}
+
+              {visibleColumns.category && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Category
+                </th>
+              )}
+
+              {visibleColumns.productType && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Product Type
+                </th>
+              )}
+
+              {visibleColumns.productSubType && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Product Sub Type
+                </th>
+              )}
+
+              {visibleColumns.subCategory && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Sub Category
+                </th>
+              )}
+
+              {visibleColumns.mainUnit && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Main Unit
+                </th>
+              )}
+
+              {visibleColumns.subUnit && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Sub Unit
+                </th>
+              )}
+
+              {visibleColumns.salesRate && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Sales Rate
+                </th>
+              )}
+
+              {visibleColumns.purchaseRate && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Purchase Rate
+                </th>
+              )}
+
+              {visibleColumns.productStatus && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Status
+                </th>
+              )}
+
+              {visibleColumns.productGroupName && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Group
+                </th>
+              )}
+
+              {visibleColumns.actions && (
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Actions
+                </th>
+              )}
             </thead>
 
             <tbody className="divide-y divide-slate-100">
               {/* Show message if no rows match */}
               {currentPageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-sm text-slate-400">
+                  <td
+                    colSpan={9}
+                    className="py-10 text-center text-sm text-slate-400"
+                  >
                     No data found
                   </td>
                 </tr>
@@ -636,24 +856,77 @@ export default function ProductList() {
                 // Show each product row
                 currentPageRows.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50">
-                    <td className="px-6 py-4">{row.productId}</td>
-                    <td className="px-6 py-4">{row.productCode}</td>
-                    <td className="px-6 py-4">{row.productName}</td>
-                    <td className="px-6 py-4">{row.productHSN}</td>
-                    <td className="px-6 py-4">{row.productType}</td>
-                    <td className="px-6 py-4">{row.category}</td>
-                    <td className="px-6 py-4">{row.productGroupName}</td>
-                    <td className="px-6 py-4">{row.productStatus}</td>
-                    <td className="px-6 py-4">
-                      {/* Delete button removes this product from the list */}
-                      <button
-                        onClick={() => handleDelete(row.id)}
-                        className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete
-                      </button>
-                    </td>
+                    {visibleColumns.productId && (
+                      <td className="px-6 py-4">{row.productId}</td>
+                    )}
+
+                    {visibleColumns.productCode && (
+                      <td className="px-6 py-4">{row.productCode}</td>
+                    )}
+
+                    {visibleColumns.productName && (
+                      <td className="px-6 py-4">{row.productName}</td>
+                    )}
+
+                    {visibleColumns.productHSN && (
+                      <td className="px-6 py-4">{row.productHSN}</td>
+                    )}
+
+                    {visibleColumns.type && (
+                      <td className="px-6 py-4">{row.type}</td>
+                    )}
+
+                    {visibleColumns.category && (
+                      <td className="px-6 py-4">{row.category}</td>
+                    )}
+
+                    {visibleColumns.productType && (
+                      <td className="px-6 py-4">{row.productType}</td>
+                    )}
+
+                    {visibleColumns.productSubType && (
+                      <td className="px-6 py-4">{row.productSubType}</td>
+                    )}
+
+                    {visibleColumns.subCategory && (
+                      <td className="px-6 py-4">{row.subCategory}</td>
+                    )}
+
+                    {visibleColumns.mainUnit && (
+                      <td className="px-6 py-4">{row.mainUnit}</td>
+                    )}
+
+                    {visibleColumns.subUnit && (
+                      <td className="px-6 py-4">{row.subUnit}</td>
+                    )}
+
+                    {visibleColumns.salesRate && (
+                      <td className="px-6 py-4">{row.salesRate}</td>
+                    )}
+
+                    {visibleColumns.purchaseRate && (
+                      <td className="px-6 py-4">{row.purchaseRate}</td>
+                    )}
+
+                    {visibleColumns.productStatus && (
+                      <td className="px-6 py-4">{row.productStatus}</td>
+                    )}
+
+                    {visibleColumns.productGroupName && (
+                      <td className="px-6 py-4">{row.productGroupName}</td>
+                    )}
+
+                    {visibleColumns.actions && (
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleDelete(row.id)}
+                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -664,23 +937,24 @@ export default function ProductList() {
         {/* Pagination — only shows if there is more than 1 page */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-
             {/* Go to previous page */}
             <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}>
               <ChevronLeft />
             </button>
 
             {/* Current page out of total pages */}
-            <span>{currentPage} / {totalPages}</span>
+            <span>
+              {currentPage} / {totalPages}
+            </span>
 
             {/* Go to next page */}
-            <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            >
               <ChevronRight />
             </button>
-
           </div>
         )}
-
       </div>
     </div>
   );
