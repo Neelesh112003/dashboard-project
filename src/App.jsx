@@ -34,6 +34,7 @@ import SupplierSummary from "./components/suppliers/SupplierSummary";
 import GRN from "./components/gate-entry/GRN";
 import StockAllocation from "./components/gate-entry/StockAllocation";
 import GateQC from "./components/gate-entry/GateQC";
+import GateQCReceipt from "./components/gate-entry/GateQCReceipt"
 
 /* PRODUCTS */
 import ProductList from "./components/products/ProductList";
@@ -137,6 +138,10 @@ export default function App() {
             element={<StockAllocation />}
           />
           <Route path="/gate-entry/quality-control" element={<GateQC />} />
+          <Route
+  path="/qc-receipt"
+  element={<GateQCReceipt />}
+/>
 
           {/* PRODUCTS */}
           <Route path="/products/list" element={<ProductList />} />

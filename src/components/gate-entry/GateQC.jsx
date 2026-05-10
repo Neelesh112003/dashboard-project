@@ -2,9 +2,10 @@ import { useRef, useState } from "react";
 import {
   Plus, Calendar, ClipboardList, Package,
   Hash, CheckCircle2, Filter,
-  ChevronLeft, ChevronRight, Boxes,
+  ChevronLeft, ChevronRight, Boxes,Eye,
 } from "lucide-react";
 import ExportTable from "../ExportTable";
+import { useNavigate } from "react-router-dom";
 
 
 // -------------------------------------------------------
@@ -85,6 +86,7 @@ function getSummary(items) {
 // -------------------------------------------------------
 
 export default function GateQC() {
+   const navigate = useNavigate();
 
   // This ref is used to open the date picker when clicking the field
   const dateRef = useRef(null);
@@ -214,13 +216,23 @@ export default function GateQC() {
 
     // Build the new history row
     const newRow = {
-      id: Date.now(), // unique id using current timestamp
-      date: form.date,
-      grn: form.grn,
-      product: form.product,
-      percentage: `${percentage}%`,
-      status: status,
-    };
+  id: Date.now(),
+  date: form.date,
+  grn: form.grn,
+  product: form.product,
+  percentage: `${percentage}%`,
+  status: status,
+
+  // ADD THESE
+  checklistName:
+    checklistTemplates.find(
+      (c) => c.id == form.checklistId,
+    )?.checklistName || "",
+
+  checklistItems: items,
+
+  checklistId: form.checklistId,
+};
 
     // Add the new row to the top of the history list
     setQcList([newRow, ...qcList]);
@@ -277,6 +289,7 @@ export default function GateQC() {
   // RENDER
   // -------------------------------------------------------
   return (
+   
     <div className="space-y-6 p-6 dark:text-white">
 
       {/* Page Title */}
@@ -592,7 +605,8 @@ export default function GateQC() {
                 <th className="px-6 py-3 text-left">GRN</th>
                 <th className="px-6 py-3 text-left">Product</th>
                 <th className="px-6 py-3 text-left">Result %</th>
-                <th className="px-6 py-3 text-left">Status</th>
+               <th className="px-6 py-3 text-left">Status</th>
+<th className="px-6 py-3 text-left">Actions</th>
               </tr>
             </thead>
 
@@ -600,7 +614,7 @@ export default function GateQC() {
               {/* Show message if no rows */}
               {currentPageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-sm text-slate-400">
+                  <td colSpan={6} className="py-10 text-center text-sm text-slate-400">
                     No QC history found
                   </td>
                 </tr>
@@ -623,6 +637,21 @@ export default function GateQC() {
                         {row.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+  <button
+    onClick={() =>
+      navigate("/qc-receipt", {
+        state: {
+          qc: row,
+        },
+      })
+    }
+    className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+  >
+    <Eye className="h-3.5 w-3.5" />
+    View
+  </button>
+</td>
                   </tr>
                 ))
               )}
