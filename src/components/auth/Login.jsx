@@ -1,8 +1,98 @@
 import { useState } from "react";
-import { BookUser, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { BookUser, ArrowLeft, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import api from "../../api/axios";
+
+
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Basic client-side validation
+    if (!email.trim()) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!password.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    setLoading(true);
+
+try {
+  const response = await api.post("/v1/auth/login", {
+    email,
+    password,
+  });
+console.log("FULL RESPONSE:", response);
+  console.log("RESPONSE DATA:", response.data);
+
+  const data = response.data;
+
+  // Extract token safely
+  const token =
+    data?.token ||
+    data?.access_token ||
+    data?.data?.token ||
+    data?.data?.access_token;
+
+  // Extract user safely
+  const user =
+    data?.user ||
+    data?.data?.user ||
+    data?.data;
+
+  if (!token) {
+    throw new Error("Token not received from server");
+  }
+
+  // Save token
+  const storage = rememberMe ? localStorage : sessionStorage;
+
+  storage.setItem("token", token);
+
+  // Save user
+  if (user) {
+    storage.setItem("user", JSON.stringify(user));
+  }
+console.log(localStorage.getItem("token"));
+console.log(sessionStorage.getItem("token"));
+  // Redirect
+  window.location.href = "/";
+
+} catch (err) {
+
+  const message =
+    err.response?.data?.message ||
+    err.message ||
+    "Login failed";
+
+  setError(message);
+
+} finally {
+  setLoading(false);
+}
+  };
+  const inputBase =
+    "w-full rounded-xl border border-slate-200 bg-[#f5f5f5] px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all sm:rounded-2xl dark:border-[#f5f5f5]/10 dark:bg-[#30333e] dark:text-[#f5f5f5] dark:placeholder-[#f5f5f5]/30";
+
+  const handleFocus = (e) => {
+    e.target.style.border = "1px solid #44a83e";
+    e.target.style.boxShadow = "0 0 0 4px rgba(68,168,62,0.15)";
+  };
+  const handleBlur = (e) => {
+    e.target.style.border = "";
+    e.target.style.boxShadow = "none";
+  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f5f5f5] px-3 py-6 sm:px-4 sm:py-10 dark:bg-[#30333e]">
@@ -36,7 +126,6 @@ export default function Login() {
             >
               <BookUser className="h-7 w-7 text-white sm:h-8 sm:w-8" />
             </div>
-
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-[#f5f5f5]">
               Welcome back
             </h1>
@@ -57,8 +146,16 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Form */}
-          <form className="space-y-4 sm:space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit} noValidate>
 
             {/* Email */}
             <div>
@@ -68,15 +165,12 @@ export default function Login() {
               <input
                 type="email"
                 placeholder="john@example.com"
-                className="w-full rounded-xl border border-slate-200 bg-[#f5f5f5] px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all sm:rounded-2xl dark:border-[#f5f5f5]/10 dark:bg-[#30333e] dark:text-[#f5f5f5] dark:placeholder-[#f5f5f5]/30"
-                onFocus={(e) => {
-                  e.target.style.border = "1px solid #44a83e";
-                  e.target.style.boxShadow = "0 0 0 4px rgba(68,168,62,0.15)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.border = "";
-                  e.target.style.boxShadow = "none";
-                }}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                className={inputBase}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
               />
             </div>
 
@@ -90,20 +184,16 @@ export default function Login() {
                   Forgot password?
                 </a>
               </div>
-
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
-                  className="w-full rounded-xl border border-slate-200 bg-[#f5f5f5] px-4 py-3 pr-12 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all sm:rounded-2xl dark:border-[#f5f5f5]/10 dark:bg-[#30333e] dark:text-[#f5f5f5] dark:placeholder-[#f5f5f5]/30"
-                  onFocus={(e) => {
-                    e.target.style.border = "1px solid #44a83e";
-                    e.target.style.boxShadow = "0 0 0 4px rgba(68,168,62,0.15)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.border = "";
-                    e.target.style.boxShadow = "none";
-                  }}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  className={`${inputBase} pr-12`}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
                 <button
                   type="button"
@@ -119,6 +209,9 @@ export default function Login() {
             <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
                 className="mt-0.5 h-4 w-4 rounded border-slate-300"
                 style={{ accentColor: "#44a83e" }}
               />
@@ -130,12 +223,20 @@ export default function Login() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.98] sm:rounded-2xl"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:rounded-2xl"
               style={{ backgroundColor: "#44a83e" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#379932")}
+              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = "#379932")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#44a83e")}
             >
-              Sign In
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Signing in…
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
 
