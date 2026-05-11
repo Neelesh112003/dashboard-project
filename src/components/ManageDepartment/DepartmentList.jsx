@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Eye,
   Trash2,
@@ -20,9 +20,26 @@ import {
 import CreateDepartmentForm from "./CreateDepartmentForm";
 import ViewDepartment from "./ViewDepartment";
 
-export default function DepartmentList({ departments = [], onDelete, onAdd }) {
+const CATEGORY_META = {
+  Engineering:              { color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  icon: Tag        },
+  "Human Resources":        { color: "#10b981", bg: "rgba(16,185,129,0.1)",  icon: Users      },
+  Finance:                  { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  icon: DollarSign },
+  Marketing:                { color: "#ec4899", bg: "rgba(236,72,153,0.1)",  icon: Megaphone  },
+  Operations:               { color: "#6366f1", bg: "rgba(99,102,241,0.1)",  icon: Settings   },
+  Sales:                    { color: "#f97316", bg: "rgba(249,115,22,0.1)",  icon: TrendingUp },
+  "IT & Security":          { color: "#ef4444", bg: "rgba(239,68,68,0.1)",   icon: Shield     },
+  Legal:                    { color: "#6b7280", bg: "rgba(107,114,128,0.1)", icon: Scale      },
+  "Research & Development": { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", icon: Beaker     },
+};
+
+export default function DepartmentList() {
+  const [departments, setDepartments] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [togglingId, setTogglingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const [filters, setFilters] = useState({
     name: "",
@@ -31,16 +48,86 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
     status: "",
   });
 
-  const CATEGORY_META = {
-    Engineering:              { color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  icon: Tag        },
-    "Human Resources":        { color: "#10b981", bg: "rgba(16,185,129,0.1)",  icon: Users      },
-    Finance:                  { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  icon: DollarSign },
-    Marketing:                { color: "#ec4899", bg: "rgba(236,72,153,0.1)",  icon: Megaphone  },
-    Operations:               { color: "#6366f1", bg: "rgba(99,102,241,0.1)",  icon: Settings   },
-    Sales:                    { color: "#f97316", bg: "rgba(249,115,22,0.1)",  icon: TrendingUp },
-    "IT & Security":          { color: "#ef4444", bg: "rgba(239,68,68,0.1)",   icon: Shield     },
-    Legal:                    { color: "#6b7280", bg: "rgba(107,114,128,0.1)", icon: Scale      },
-    "Research & Development": { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", icon: Beaker     },
+  const token = localStorage.getItem("token");
+  const authHeader = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  const fetchDepartments = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/v1/auth/departments", {
+        headers: authHeader,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data?.message || "Failed to fetch departments.");
+        return;
+      }
+      setDepartments(Array.isArray(data) ? data : data.data ?? []);
+    } catch {
+      setError("Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, [fetchDepartments]);
+
+  const handleAdd = (newDept) => {
+    setDepartments((prev) => [newDept, ...prev]);
+  };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/v1/auth/departments/${id}`, {
+        method: "DELETE",
+        headers: authHeader,
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data?.message || "Failed to delete department.");
+        return;
+      }
+      setDepartments((prev) => prev.filter((d) => d.id !== id));
+    } catch {
+      setError("Network error. Please check your connection.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleToggleStatus = async (dept) => {
+    const endpoint =
+      dept.status === "active"
+        ? `/v1/auth/departments/${dept.id}/deactivate`
+        : `/v1/auth/departments/${dept.id}/activate`;
+
+    setTogglingId(dept.id);
+    try {
+      const response = await fetch(endpoint, {
+        method: "PATCH",
+        headers: authHeader,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data?.message || "Failed to update status.");
+        return;
+      }
+      setDepartments((prev) =>
+        prev.map((d) =>
+          d.id === dept.id
+            ? { ...d, status: dept.status === "active" ? "inactive" : "active" }
+            : d
+        )
+      );
+    } catch {
+      setError("Network error. Please check your connection.");
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const updateFilter = (key, value) =>
@@ -69,7 +156,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
 
-        {/* ── Header ── */}
         <div
           className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
           style={{ backgroundColor: "#3a3c44" }}
@@ -103,10 +189,13 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
           </div>
         </div>
 
-        {/* ── Filter Bar ── */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-[#162033] bg-slate-50 dark:bg-[#0f1a2e] flex flex-wrap gap-3 items-center">
+        {error && (
+          <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            {error}
+          </div>
+        )}
 
-          {/* Department Name */}
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-[#162033] bg-slate-50 dark:bg-[#0f1a2e] flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-37.5">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             <input
@@ -118,7 +207,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             />
           </div>
 
-          {/* Category — text input */}
           <div className="flex-1 min-w-35">
             <input
               type="text"
@@ -129,7 +217,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             />
           </div>
 
-          {/* Department Head — text input */}
           <div className="flex-1 min-w-35">
             <input
               type="text"
@@ -140,7 +227,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             />
           </div>
 
-          {/* Status — dropdown */}
           <select
             value={filters.status}
             onChange={(e) => updateFilter("status", e.target.value)}
@@ -151,7 +237,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             <option value="inactive">Inactive</option>
           </select>
 
-          {/* Reset — only when a filter is active */}
           {isFiltered && (
             <button
               onClick={resetFilters}
@@ -162,7 +247,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             </button>
           )}
 
-          {/* Result count */}
           {isFiltered && (
             <span className="text-xs text-slate-400 whitespace-nowrap ml-auto">
               Showing {filtered.length} of {departments.length}
@@ -170,9 +254,11 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
           )}
         </div>
 
-        {/* ── Body ── */}
-        {departments.length === 0 ? (
-          /* No departments at all */
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#44a83e]" />
+          </div>
+        ) : departments.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-[#11182b]">
               <Building2 className="h-7 w-7 text-slate-400" />
@@ -193,15 +279,12 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          /* Filters produced no results */
           <div className="flex flex-col items-center justify-center py-12 text-center px-6">
             <Search className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-3" />
             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
               No results found
             </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Try adjusting your filters.
-            </p>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting your filters.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -230,10 +313,8 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                       key={dept.id}
                       className="transition-colors hover:bg-slate-50 dark:hover:bg-[#11182b]"
                     >
-                      {/* S.No */}
                       <td className="px-5 py-4 text-xs text-slate-400">{idx + 1}</td>
 
-                      {/* Department */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3a3c44] text-sm font-bold text-white">
@@ -245,7 +326,6 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                         </div>
                       </td>
 
-                      {/* Category */}
                       <td className="px-5 py-4">
                         <span
                           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-semibold"
@@ -256,15 +336,15 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                         </span>
                       </td>
 
-                      {/* Head */}
                       <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
                         {dept.departmentHead || "—"}
                       </td>
 
-                      {/* Status */}
                       <td className="px-5 py-4">
-                        <span
-                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-semibold"
+                        <button
+                          onClick={() => handleToggleStatus(dept)}
+                          disabled={togglingId === dept.id}
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-75 disabled:opacity-50"
                           style={{
                             backgroundColor: isActive ? "rgba(45,110,42,0.1)" : "rgba(239,68,68,0.1)",
                             color: isActive ? "#2d6e2a" : "#ef4444",
@@ -274,11 +354,14 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                             className="h-1.5 w-1.5 rounded-full"
                             style={{ backgroundColor: isActive ? "#2d6e2a" : "#ef4444" }}
                           />
-                          {isActive ? "Active" : "Inactive"}
-                        </span>
+                          {togglingId === dept.id
+                            ? "Updating…"
+                            : isActive
+                            ? "Active"
+                            : "Inactive"}
+                        </button>
                       </td>
 
-                      {/* Actions */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
                           <button
@@ -293,10 +376,12 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
                           </button>
 
                           <button
-                            onClick={() => onDelete?.(dept.id)}
-                            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-900/20"
+                            onClick={() => handleDelete(dept.id)}
+                            disabled={deletingId === dept.id}
+                            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-900/20 disabled:opacity-50"
                           >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingId === dept.id ? "Deleting…" : "Delete"}
                           </button>
                         </div>
                       </td>
@@ -310,7 +395,7 @@ export default function DepartmentList({ departments = [], onDelete, onAdd }) {
       </div>
 
       {showCreate && (
-        <CreateDepartmentForm onAdd={onAdd} onClose={() => setShowCreate(false)} />
+        <CreateDepartmentForm onAdd={handleAdd} onClose={() => setShowCreate(false)} />
       )}
 
       {selectedDepartment && (

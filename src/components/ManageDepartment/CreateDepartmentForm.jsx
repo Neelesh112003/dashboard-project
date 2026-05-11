@@ -25,47 +25,74 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
 
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const validate = () => {
     const e = {};
-
     if (!form.name.trim()) e.name = "Department name is required";
     else if (form.name.trim().length < 2) e.name = "Min. 2 characters";
-
     if (!form.workLocation.trim()) e.workLocation = "Work location is required";
     if (!form.category) e.category = "Please select a category";
     if (!form.departmentHead.trim()) e.departmentHead = "Department head is required";
-
     return e;
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const e = validate();
-
     if (Object.keys(e).length) {
       setErrors(e);
       return;
     }
 
-    onAdd?.({
-      ...form,
-      id: Date.now(),
-      createdOn: new Date().toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-    });
+    setLoading(true);
+    setApiError("");
 
-    setForm(initialForm);
-    setErrors({});
-    setSuccessMsg(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/v1/auth/departments/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: form.name,
+          workLocation: form.workLocation,
+          category: form.category,
+          departmentHead: form.departmentHead,
+          remarks: form.remarks,
+          status: form.status,
+        }),
+      });
 
-    setTimeout(() => {
-      setSuccessMsg(false);
-      onClose?.();
-    }, 1500);
+      const data = await response.json();
+
+      if (!response.ok) {
+        const msg =
+          data?.message ||
+          (data?.errors
+            ? Object.values(data.errors).flat().join(" ")
+            : "Failed to create department.");
+        setApiError(msg);
+        return;
+      }
+
+      onAdd?.(data);
+      setForm(initialForm);
+      setErrors({});
+      setSuccessMsg(true);
+
+      setTimeout(() => {
+        setSuccessMsg(false);
+        onClose?.();
+      }, 1500);
+    } catch {
+      setApiError("Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inp = (field) =>
@@ -111,12 +138,18 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
 
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-6 p-6">
-            {successMsg ? (
+            {successMsg && (
               <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
                 <CheckCircle className="h-4 w-4 shrink-0" />
                 Department created successfully.
               </div>
-            ) : null}
+            )}
+
+            {apiError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                {apiError}
+              </div>
+            )}
 
             <div>
               <p className="mb-4 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:border-[#162033]">
@@ -246,19 +279,22 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
         <div className="flex shrink-0 items-center gap-3 border-t border-slate-100 px-6 py-4 dark:border-[#162033]">
           <button
             onClick={handleAdd}
-            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#44a83e" }}
           >
             <Building2 className="h-4 w-4" />
-            Create Department
+            {loading ? "Creating…" : "Create Department"}
           </button>
 
           <button
             onClick={() => {
               setForm(initialForm);
               setErrors({});
+              setApiError("");
             }}
-            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-50 dark:border-[#1b2740] dark:text-slate-400 dark:hover:bg-[#11182b]"
+            disabled={loading}
+            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-50 dark:border-[#1b2740] dark:text-slate-400 dark:hover:bg-[#11182b] disabled:opacity-60"
           >
             Reset
           </button>

@@ -1,24 +1,54 @@
-import {
-  X,
-  Building2,
-  MapPin,
-  Tag,
-  UserCircle,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Building2, Loader2 } from "lucide-react";
 
 export default function ViewDepartment({ department, onClose }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!department?.id) return;
+
+    const fetchDetail = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`/v1/auth/departments/${department.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          setError(data?.message || "Failed to fetch department details.");
+          return;
+        }
+        setDetail(data);
+      } catch {
+        setError("Network error. Please check your connection.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetail();
+  }, [department?.id]);
+
   if (!department) return null;
 
-  const isActive = department.status === "active";
+  const dept = detail ?? department;
+  const isActive = dept.status === "active";
 
   const fields = [
-    { label: "Department Name", value: department.name },
-    { label: "Work Location", value: department.workLocation },
-    { label: "Category", value: department.category },
-    { label: "Department Head", value: department.departmentHead },
-    { label: "Remarks", value: department.remarks },
-    { label: "Status", value: department.status },
-    { label: "Created On", value: department.createdOn },
+    { label: "Department Name", value: dept.name },
+    { label: "Work Location",   value: dept.workLocation },
+    { label: "Category",        value: dept.category },
+    { label: "Department Head", value: dept.departmentHead },
+    { label: "Remarks",         value: dept.remarks },
+    { label: "Status",          value: dept.status },
+    { label: "Created On",      value: dept.createdOn },
   ];
 
   return (
@@ -40,12 +70,10 @@ export default function ViewDepartment({ department, onClose }) {
               className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold text-white"
               style={{ backgroundColor: "rgba(245,245,245,0.15)" }}
             >
-              {department.name?.charAt(0).toUpperCase()}
+              {dept.name?.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">
-                {department.name}
-              </h3>
+              <h3 className="text-base font-semibold text-white">{dept.name}</h3>
               <p className="text-xs" style={{ color: "rgba(245,245,245,0.6)" }}>
                 Department Details
               </p>
@@ -60,41 +88,49 @@ export default function ViewDepartment({ department, onClose }) {
           </button>
         </div>
 
-        <div className="space-y-1 p-6">
-          {fields.map(({ label, value }) => (
-            <div
-              key={label}
-              className="flex items-center justify-between gap-4 border-b border-slate-100 py-3 last:border-0 dark:border-[#162033]"
-            >
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                {label}
-              </span>
-
-              {label === "Status" ? (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold"
-                  style={{
-                    backgroundColor: isActive
-                      ? "rgba(45,110,42,0.1)"
-                      : "rgba(239,68,68,0.1)",
-                    color: isActive ? "#2d6e2a" : "#ef4444",
-                  }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{
-                      backgroundColor: isActive ? "#2d6e2a" : "#ef4444",
-                    }}
-                  />
-                  {isActive ? "Active" : "Inactive"}
-                </span>
-              ) : (
-                <span className="max-w-[60%] wrap-break-word text-right text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {value || "—"}
-                </span>
-              )}
+        <div className="p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
             </div>
-          ))}
+          ) : error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+              {error}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {fields.map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-4 border-b border-slate-100 py-3 last:border-0 dark:border-[#162033]"
+                >
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {label}
+                  </span>
+
+                  {label === "Status" ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold"
+                      style={{
+                        backgroundColor: isActive ? "rgba(45,110,42,0.1)" : "rgba(239,68,68,0.1)",
+                        color: isActive ? "#2d6e2a" : "#ef4444",
+                      }}
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: isActive ? "#2d6e2a" : "#ef4444" }}
+                      />
+                      {isActive ? "Active" : "Inactive"}
+                    </span>
+                  ) : (
+                    <span className="max-w-[60%] wrap-break-word text-right text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {value || "—"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
