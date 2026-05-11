@@ -1,5 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import api from "../../api/axios";
 
 import {
   Plus,
@@ -34,7 +35,8 @@ export default function ManageBanks() {
   /* =========================================================
      STATE
   ========================================================= */
-
+  //loading state
+  const [loading, setLoading] = useState(false);
   // Show / hide form
   const [showForm, setShowForm] = useState(false);
 
@@ -54,13 +56,35 @@ export default function ManageBanks() {
 
   // Form data
   const [formData, setFormData] = useState({
-  name: "",
-  ifsc: "",
-  accountType: "Savings",
-  accountNumber: "",
-  branch: "",
-  branchAddress: "",
-});
+    name: "",
+    ifsc: "",
+    accountType: "Savings",
+    accountNumber: "",
+    branch: "",
+    branchAddress: "",
+  });
+  /* =========================================================
+     API INTEGRATION
+  ========================================================= */
+
+const fetchBanks = async () => {
+  try {
+    setLoading(true);
+
+    const response = await api.get("/v1/banks/list");
+
+    console.log(response.data);
+
+    setBanks(
+      response.data.data.data || []
+    );
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
   /* =========================================================
      HANDLE INPUT CHANGE
   ========================================================= */
@@ -78,34 +102,49 @@ export default function ManageBanks() {
   ========================================================= */
   const resetForm = () => {
     setFormData({
-  name: "",
-  ifsc: "",
-  accountType: "Savings",
-  accountNumber: "",
-  branch: "",
-  branchAddress: "",
-});
+      name: "",
+      ifsc: "",
+      accountType: "Savings",
+      accountNumber: "",
+      branch: "",
+      branchAddress: "",
+    });
   };
 
   /* =========================================================
      ADD BANK
   ========================================================= */
-  const addBank = (bankData) => {
-    const newBank = {
-      ...bankData,
-      id: Date.now(),
-    };
+  const addBank = async (bankData) => {
+    try {
+      const payload = {
+        bank_name: bankData.name,
 
-    setBanks((prev) => [
-      newBank,
-      ...prev,
-    ]);
+        ifsc_code: bankData.ifsc,
 
-    // Close form
-    setShowForm(false);
+        account_type: bankData.accountType,
 
-    // Reset form
-    resetForm();
+        account_number: bankData.accountNumber,
+
+        branch: bankData.branch,
+
+        branch_address: bankData.branchAddress,
+      };
+
+      console.log("data sent to server");
+      console.log(payload)
+      const response = await api.post("/v1/banks/create", payload);
+      console.log(response);
+
+      fetchBanks();
+
+      setShowForm(false);
+
+      resetForm();
+    } catch (error) {
+       console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
   };
 
   /* =========================================================
@@ -120,12 +159,14 @@ export default function ManageBanks() {
   /* =========================================================
      DELETE BANK
   ========================================================= */
-  const deleteBank = (id) => {
-    const updatedBanks = banks.filter(
-      (bank) => bank.id !== id,
-    );
+  const deleteBank = async (id) => {
+    try {
+      await api.delete(`/v1/banks/delete/${id}`);
 
-    setBanks(updatedBanks);
+      fetchBanks();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /* =========================================================
@@ -142,37 +183,26 @@ export default function ManageBanks() {
       const csvText = e.target.result;
 
       // Convert CSV text into rows
-      const rows = csvText
-        .split("\n")
-        .map((row) => row.split(","));
+      const rows = csvText.split("\n").map((row) => row.split(","));
 
       // First row = headers
       const headers = rows[0];
 
       // Remaining rows = bank data
-      const importedBanks = rows
-        .slice(1)
-        .map((row) => {
-          const bank = {};
+      const importedBanks = rows.slice(1).map((row) => {
+        const bank = {};
 
-          headers.forEach(
-            (header, index) => {
-              bank[header.trim()] =
-                row[index]?.trim();
-            },
-          );
-
-          return {
-            ...bank,
-            id:
-              Date.now() + Math.random(),
-          };
+        headers.forEach((header, index) => {
+          bank[header.trim()] = row[index]?.trim();
         });
 
-      setBanks((prev) => [
-        ...importedBanks,
-        ...prev,
-      ]);
+        return {
+          ...bank,
+          id: Date.now() + Math.random(),
+        };
+      });
+
+      setBanks((prev) => [...importedBanks, ...prev]);
     };
 
     reader.readAsText(file);
@@ -184,11 +214,7 @@ export default function ManageBanks() {
   const filteredBanks = banks
     .filter((bank) => {
       // Filter by account type
-      if (
-        filters.accountType &&
-        bank.accountType !==
-          filters.accountType
-      ) {
+      if (filters.accountType && bank.account_type !== filters.accountType) {
         return false;
       }
 
@@ -198,42 +224,31 @@ export default function ManageBanks() {
       // Search filter
       if (!searchText) return true;
 
-      return Object.values(bank).some(
-        (value) =>
-          String(value)
-            .toLowerCase()
-            .includes(
-              searchText.toLowerCase(),
-            ),
+      return Object.values(bank).some((value) =>
+        String(value).toLowerCase().includes(searchText.toLowerCase()),
       );
     });
 
   /* =========================================================
      PAGINATION
   ========================================================= */
-  const totalPages = Math.ceil(
-    filteredBanks.length /
-      ITEMS_PER_PAGE,
-  );
+  const totalPages = Math.ceil(filteredBanks.length / ITEMS_PER_PAGE);
 
-  const paginatedBanks =
-    filteredBanks.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE,
-    );
+  const paginatedBanks = filteredBanks.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   /* =========================================================
      UNIQUE VALUES FOR FILTERS
   ========================================================= */
   const getUniqueValues = (key) => {
-    return [
-      ...new Set(
-        banks
-          .map((item) => item[key])
-          .filter(Boolean),
-      ),
-    ];
+    return [...new Set(banks.map((item) => item[key]).filter(Boolean))];
   };
+
+  useEffect(() => {
+    fetchBanks();
+  }, []);
 
   /* =========================================================
      UI
@@ -254,13 +269,11 @@ export default function ManageBanks() {
       </div>
 
       <div className="space-y-8">
-
         {/* =====================================================
             FORM SECTION
         ====================================================== */}
         {showForm && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
             {/* HEADER */}
             <div
               className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -270,30 +283,23 @@ export default function ManageBanks() {
             >
               {/* LEFT SIDE */}
               <div className="flex items-center gap-3">
-
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
                   <Plus className="h-5 w-5 text-white" />
                 </div>
 
                 <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    Add Bank
-                  </h2>
+                  <h2 className="text-lg font-semibold text-white">Add Bank</h2>
 
                   <p className="text-xs text-white/60">
-                    Manage your bank
-                    accounts
+                    Manage your bank accounts
                   </p>
                 </div>
               </div>
 
               {/* IMPORT BUTTON */}
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white hover:bg-white/10">
-
                 <Upload className="h-4 w-4" />
-
                 Import
-
                 <input
                   type="file"
                   accept=".csv"
@@ -305,9 +311,7 @@ export default function ManageBanks() {
 
             {/* FORM */}
             <form onSubmit={handleSubmit}>
-
               <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
-
                 {/* BANK NAME */}
                 <InputField
                   label="Bank Name"
@@ -319,9 +323,7 @@ export default function ManageBanks() {
                     type="text"
                     name="name"
                     value={formData.name}
-                    onChange={
-                      handleInputChange
-                    }
+                    onChange={handleInputChange}
                     className={inputClass}
                   />
                 </InputField>
@@ -337,9 +339,7 @@ export default function ManageBanks() {
                     type="text"
                     name="ifsc"
                     value={formData.ifsc}
-                    onChange={
-                      handleInputChange
-                    }
+                    onChange={handleInputChange}
                     className={inputClass}
                   />
                 </InputField>
@@ -353,21 +353,13 @@ export default function ManageBanks() {
                 >
                   <select
                     name="accountType"
-                    value={
-                      formData.accountType
-                    }
-                    onChange={
-                      handleInputChange
-                    }
+                    value={formData.accountType}
+                    onChange={handleInputChange}
                     className={inputClass}
                   >
-                    <option value="Savings">
-                      Savings
-                    </option>
+                    <option value="Savings">Savings</option>
 
-                    <option value="Current">
-                      Current
-                    </option>
+                    <option value="Current">Current</option>
                   </select>
                 </InputField>
 
@@ -381,45 +373,41 @@ export default function ManageBanks() {
                   <input
                     type="text"
                     name="accountNumber"
-                    value={
-                      formData.accountNumber
-                    }
-                    onChange={
-                      handleInputChange
-                    }
+                    value={formData.accountNumber}
+                    onChange={handleInputChange}
                     className={inputClass}
                   />
                 </InputField>
-              {/*branch name */}
+                {/*branch name */}
                 <InputField
-  label="Branch"
-  icon={
-    <Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-  }
->
-  <input
-    type="text"
-    name="branch"
-    value={formData.branch}
-    onChange={handleInputChange}
-    className={inputClass}
-  />
-</InputField>
-{/*branch address */}
-<InputField
-  label="Branch Address"
-  icon={
-    <Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-  }
->
-  <input
-    type="text"
-    name="branchAddress"
-    value={formData.branchAddress}
-    onChange={handleInputChange}
-    className={inputClass}
-  />
-</InputField>
+                  label="Branch"
+                  icon={
+                    <Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  }
+                >
+                  <input
+                    type="text"
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleInputChange}
+                    className={inputClass}
+                  />
+                </InputField>
+                {/*branch address */}
+                <InputField
+                  label="Branch Address"
+                  icon={
+                    <Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  }
+                >
+                  <input
+                    type="text"
+                    name="branchAddress"
+                    value={formData.branchAddress}
+                    onChange={handleInputChange}
+                    className={inputClass}
+                  />
+                </InputField>
               </div>
 
               {/* SUBMIT BUTTON */}
@@ -440,7 +428,6 @@ export default function ManageBanks() {
             TABLE SECTION
         ====================================================== */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
           {/* HEADER */}
           <div
             className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -449,10 +436,8 @@ export default function ManageBanks() {
             }}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-
               {/* LEFT SIDE */}
               <div className="flex items-center gap-3">
-
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
                   <Boxes className="h-5 w-5 text-white" />
                 </div>
@@ -463,26 +448,20 @@ export default function ManageBanks() {
                   </h2>
 
                   <p className="text-xs text-white/60">
-                    {
-                      filteredBanks.length
-                    }{" "}
-                    items
+                    {filteredBanks.length} items
                   </p>
                 </div>
               </div>
 
               {/* RIGHT SIDE */}
               <div className="ml-auto flex flex-wrap items-center gap-2">
-
                 {/* SEARCH */}
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchText}
                   onChange={(e) => {
-                    setSearchText(
-                      e.target.value,
-                    );
+                    setSearchText(e.target.value);
 
                     setCurrentPage(1);
                   }}
@@ -494,32 +473,29 @@ export default function ManageBanks() {
                   title="Manage Banks"
                   columns={[
                     {
-                      label:
-                        "Bank Name",
-                      key: "name",
+                      label: "Bank Name",
+                      key: "bank_name",
                     },
                     {
                       label: "IFSC",
-                      key: "ifsc",
+                      key: "ifsc_code",
                     },
                     {
-                      label:
-                        "Account Type",
-                      key: "accountType",
+                      label: "Account Type",
+                      key: "account_type",
                     },
                     {
-                      label:
-                        "Account Number",
-                      key: "accountNumber",
+                      label: "Account Number",
+                      key: "account_number",
                     },
                     {
-  label: "Branch",
-  key: "branch",
-},
-{
-  label: "Branch Address",
-  key: "branchAddress",
-},
+                      label: "Branch",
+                      key: "branch",
+                    },
+                    {
+                      label: "Branch Address",
+                      key: "branch_address",
+                    },
                   ]}
                   data={filteredBanks}
                 />
@@ -529,7 +505,6 @@ export default function ManageBanks() {
 
           {/* FILTERS */}
           <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 dark:border-[#162033] dark:bg-[#0d1f38]">
-
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
               <Filter className="h-3.5 w-3.5" />
               Filter
@@ -540,25 +515,17 @@ export default function ManageBanks() {
               onChange={(e) => {
                 setFilters({
                   ...filters,
-                  accountType:
-                    e.target.value,
+                  accountType: e.target.value,
                 });
 
                 setCurrentPage(1);
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
             >
-              <option value="">
-                All account types
-              </option>
+              <option value="">All account types</option>
 
-              {getUniqueValues(
-                "accountType",
-              ).map((value) => (
-                <option
-                  key={value}
-                  value={value}
-                >
+              {getUniqueValues("account_type").map((value) => (
+                <option key={value} value={value}>
                   {value}
                 </option>
               ))}
@@ -567,22 +534,19 @@ export default function ManageBanks() {
 
           {/* TABLE */}
           <div className="overflow-x-auto">
-
             <table className="w-full text-sm">
-
               {/* TABLE HEADER */}
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#162033]">
-
                   {[
-  "Bank Name",
-  "IFSC",
-  "Type",
-  "Account No.",
-  "Branch",
-  "Branch Address",
-  "Actions",
-].map((heading) => (
+                    "Bank Name",
+                    "IFSC",
+                    "Type",
+                    "Account No.",
+                    "Branch",
+                    "Branch Address",
+                    "Actions",
+                  ].map((heading) => (
                     <th
                       key={heading}
                       className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400"
@@ -595,9 +559,7 @@ export default function ManageBanks() {
 
               {/* TABLE BODY */}
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
-
-                {paginatedBanks.length ===
-                0 ? (
+                {paginatedBanks.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -607,74 +569,50 @@ export default function ManageBanks() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedBanks.map(
-                    (bank) => (
-                      <tr
-                        key={bank.id}
-                        className="hover:bg-slate-50 dark:hover:bg-[#11182b]"
-                      >
-                        <td className="px-6 py-4">
-                          {bank.name}
-                        </td>
+                  paginatedBanks.map((bank) => (
+                    <tr
+                      key={bank.bank_id}
+                      className="hover:bg-slate-50 dark:hover:bg-[#11182b]"
+                    >
+                      <td className="px-6 py-4">{bank.bank_name}</td>
 
-                        <td className="px-6 py-4">
-                          {bank.ifsc}
-                        </td>
+                      <td className="px-6 py-4">{bank.ifsc_code}</td>
 
-                        <td className="px-6 py-4">
-                          {
-                            bank.accountType
-                          }
-                        </td>
+                      <td className="px-6 py-4">{bank.account_type}</td>
 
-                        <td className="px-6 py-4">
-                          {
-                            bank.accountNumber
-                          }
-                        </td>
-                        <td className="px-6 py-4">
-  {bank.branch}
-</td>
+                      <td className="px-6 py-4">{bank.account_number}</td>
+                      <td className="px-6 py-4">{bank.branch}</td>
 
-<td className="px-6 py-4">
-  {bank.branchAddress}
-</td>
+                      <td className="px-6 py-4">{bank.branch_address}</td>
 
-                        {/* ACTION BUTTONS */}
-                        <td className="px-6 py-4">
+                      {/* ACTION BUTTONS */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {/* VIEW BUTTON */}
+                          <button
+                            onClick={() =>
+                              navigate(
+                                `/transactions/bank-book?bank=${bank.bank_name}`,
+                              )
+                            }
+                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            View
+                          </button>
 
-                          <div className="flex items-center gap-2">
-
-                            {/* VIEW BUTTON */}
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/transactions/bank-book?bank=${bank.name}`,
-                                )
-                              }
-                              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              View
-                            </button>
-
-                            {/* DELETE BUTTON */}
-                            <button
-                              onClick={() =>
-                                deleteBank(
-                                  bank.id,
-                                )
-                              }
-                              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ),
-                  )
+                          {/* DELETE BUTTON */}
+                          <button
+                            onClick={() => deleteBank(bank.bank_id)}
+                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
@@ -683,33 +621,22 @@ export default function ManageBanks() {
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-[#162033]">
-
               {/* PREVIOUS */}
               <button
-                onClick={() =>
-                  setCurrentPage((prev) =>
-                    Math.max(prev - 1, 1),
-                  )
-                }
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               >
                 <ChevronLeft />
               </button>
 
               {/* PAGE NUMBER */}
               <span>
-                {currentPage} /{" "}
-                {totalPages}
+                {currentPage} / {totalPages}
               </span>
 
               {/* NEXT */}
               <button
                 onClick={() =>
-                  setCurrentPage((prev) =>
-                    Math.min(
-                      prev + 1,
-                      totalPages,
-                    ),
-                  )
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
               >
                 <ChevronRight />
@@ -725,14 +652,9 @@ export default function ManageBanks() {
 /* =========================================================
    REUSABLE INPUT FIELD COMPONENT
 ========================================================= */
-function InputField({
-  label,
-  icon,
-  children,
-}) {
+function InputField({ label, icon, children }) {
   return (
     <div className="space-y-1.5">
-
       <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
         {label}
       </label>
