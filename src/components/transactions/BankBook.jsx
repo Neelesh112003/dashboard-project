@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import ExportTable from "../ExportTable";
+import api from "../../api/axios";
 import {
   Plus,
   Calendar,
@@ -25,18 +26,28 @@ export default function BankBook() {
   // All saved transactions
   const [transactionList, setTransactionList] = useState([]);
 
+  //loading and error state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   // List of available banks
-  const [bankOptions] = useState(["SBI", "HDFC", "UNION", "ICICI", "PUNJAB"]);
+  const [bankOptions] = useState([
+    { id: 1, name: "SBI" },
+    { id: 2, name: "HDFC" },
+    { id: 3, name: "UNION" },
+    { id: 4, name: "ICICI" },
+    { id: 5, name: "PUNJAB" },
+  ]);
 
   // What the user is typing in the form right now
   const [formValues, setFormValues] = useState({
     date: "",
     particular: "",
     amount: "",
-    bank: "SBI",
+    bank_id: 1,
+    bank_name: "SBI",
     type: "entry",
   });
-
 
   // Which bank is selected in the filter dropdown
   const [filterBank, setFilterBank] = useState("");
@@ -57,43 +68,83 @@ export default function BankBook() {
 
   // ── FORM HANDLERS ──────────────────────────────────────────────────────────
 
+  //calling api and handling response and errors
+
+  async function fetchBankBook() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/v1/bankbook/list");
+      console.log('response from the server ',response.data);
+      // assuming backend sends:
+      // { data: [...] }
+
+      setTransactionList([]);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load bank book");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // When the user types in any input, update the matching field in formValues
   function handleFormChange(e) {
-    setFormValues({
-      ...formValues,
+    setFormValues((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   }
 
   // When the user clicks "Create", add the new transaction to the list
-  function handleSubmit(e) {
-    e.preventDefault(); // stop the page from reloading
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!formValues.date || !formValues.particular || !formValues.amount) {
+      alert("Please fill all fields");
+      return;
+    }
 
-    const newTransaction = {
-      ...formValues,
-      id: Date.now(), // unique id based on current timestamp
-    };
+    try {
+      await api.post("/v1/bankbook/create", formValues, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    // Add the new transaction to the top of the list
-    setTransactionList([newTransaction, ...transactionList]);
+      // add newly created item
+      await fetchBankBook();
+      
+      setShowForm(false);
 
-    // Close the form
-    setShowForm(false);
+      setFormValues({
+        date: "",
+        particular: "",
+        amount: "",
+        bank_id: 1,
+        bank_name: "SBI",
+        type: "entry",
+      });
+    } catch (err) {
+      console.error(err);
 
-    // Clear the form fields for next time
-    setFormValues({
-      date: "",
-      particular: "",
-      amount: "",
-      bank: bankOptions[0],
-      type: "entry",
-    });
+      console.log(err.response);
+      console.log(err.response?.data);
+
+      alert(err.response?.data?.message || "Failed to create transaction");
+    }
   }
 
   // When the user clicks "Delete", remove that transaction from the list
-  function handleDelete(id) {
-    const updatedList = transactionList.filter((t) => t.id !== id);
-    setTransactionList(updatedList);
+  async function handleDelete(id) {
+    try {
+      await api.delete(`/v1/bankbook/delete/${id}`);
+
+      await fetchBankBook();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete transaction");
+    }
   }
 
   // ── CSV IMPORT ─────────────────────────────────────────────────────────────
@@ -134,7 +185,7 @@ export default function BankBook() {
       });
 
       // Add all imported rows to the top of the list
-      setTransactionList([...importedTransactions, ...transactionList]);
+      setTransactionList((prev) => [...importedTransactions, ...prev]);
     };
 
     reader.readAsText(file);
@@ -158,7 +209,6 @@ export default function BankBook() {
       (t) => t.bank === filterBank,
     );
   }
- 
 
   // If a type filter is selected in the dropdown, apply it
   if (filterType !== "") {
@@ -195,12 +245,26 @@ export default function BankBook() {
 
   // ── RENDER ─────────────────────────────────────────────────────────────────
 
+  //caling the api function to retrieve data
+  useEffect(() => {
+    fetchBankBook();
+  }, []);
+
   return (
     <>
       {/* Add Transaction button */}
       <div className="mb-5 flex gap-3">
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setShowForm(true);
+
+            setFormValues((prev) => ({
+              ...prev,
+              date: new Date().toISOString().split("T")[0],
+              bank_id: 1,
+              bank_name: "SBI",
+            }));
+          }}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
         >
           <Plus className="h-4 w-4" />
@@ -257,6 +321,7 @@ export default function BankBook() {
                       name="date"
                       value={formValues.date}
                       onChange={handleFormChange}
+                      onClick={(e) => e.target.showPicker()}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     />
                   </div>
@@ -305,13 +370,25 @@ export default function BankBook() {
                   <div className="relative">
                     <Building2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <select
-                      name="bank"
-                      value={formValues.bank}
-                      onChange={handleFormChange}
+                      name="bank_id"
+                      value={formValues.bank_id}
+                      onChange={(e) => {
+                        const selectedBank = bankOptions.find(
+                          (bank) => bank.id === Number(e.target.value),
+                        );
+
+                        setFormValues((prev) => ({
+                          ...prev,
+                          bank_id: selectedBank.id,
+                          bank_name: selectedBank.name,
+                        }));
+                      }}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     >
                       {bankOptions.map((bank) => (
-                        <option key={bank}>{bank}</option>
+                        <option key={bank.id} value={bank.id}>
+                          {bank.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -352,6 +429,8 @@ export default function BankBook() {
         )}
 
         {/* ── TRANSACTIONS TABLE ── */}
+        {/*showing error if api response not working */}
+        {error && <div className="p-4 text-sm text-red-500">{error}</div>}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
           {/* Table header */}
           <div
@@ -393,7 +472,7 @@ export default function BankBook() {
                     { label: "Particular", key: "particular" },
                     { label: "Amount", key: "amount" },
                     { label: "Bank", key: "bank" },
-{ label: "Type", key: "type" },
+                    { label: "Type", key: "type" },
                   ]}
                   data={visibleTransactions}
                 />
@@ -437,7 +516,6 @@ export default function BankBook() {
                 <option key={type}>{type}</option>
               ))}
             </select>
-            
           </div>
 
           {/* Table */}
@@ -465,7 +543,16 @@ export default function BankBook() {
 
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
                 {/* If no rows match, show an empty state message */}
-                {rowsOnThisPage.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="py-10 text-center text-sm text-slate-400"
+                    >
+                      Loading...
+                    </td>
+                  </tr>
+                ) : rowsOnThisPage.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}

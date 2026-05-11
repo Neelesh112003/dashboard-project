@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { BookUser, ArrowLeft, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import {
+  BookUser,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import api from "../../api/axios";
-
-
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -28,59 +33,51 @@ export default function Login() {
 
     setLoading(true);
 
-try {
-  const response = await api.post("/v1/auth/login", {
-    email,
-    password,
-  });
-console.log("FULL RESPONSE:", response);
-  console.log("RESPONSE DATA:", response.data);
+    try {
+      const response = await api.post("/v1/auth/login", {
+        email,
+        password,
+      });
+      console.log("FULL RESPONSE:", response);
+      console.log("RESPONSE DATA:", response.data);
 
-  const data = response.data;
+      const data = response.data;
 
-  // Extract token safely
-  const token =
-    data?.token ||
-    data?.access_token ||
-    data?.data?.token ||
-    data?.data?.access_token;
+      // Extract token safely
+      const token =
+        data?.token ||
+        data?.access_token ||
+        data?.data?.token ||
+        data?.data?.access_token;
 
-  // Extract user safely
-  const user =
-    data?.user ||
-    data?.data?.user ||
-    data?.data;
+      // Extract user safely
+      const user = data?.user || data?.data?.user || data?.data;
 
-  if (!token) {
-    throw new Error("Token not received from server");
-  }
+      if (!token) {
+        throw new Error("Token not received from server");
+      }
 
-  // Save token
-  const storage = rememberMe ? localStorage : sessionStorage;
+      // Save token
+      const storage = rememberMe ? localStorage : sessionStorage;
 
-  storage.setItem("token", token);
+      storage.setItem("token", token);
 
-  // Save user
-  if (user) {
-    storage.setItem("user", JSON.stringify(user));
-  }
-console.log(localStorage.getItem("token"));
-console.log(sessionStorage.getItem("token"));
-  // Redirect
-  window.location.href = "/";
+      // Save user
+      if (user) {
+        storage.setItem("user", JSON.stringify(user));
+      }
+      console.log(localStorage.getItem("token"));
+      console.log(sessionStorage.getItem("token"));
+      // Redirect
+      window.location.href = "/";
+    } catch (err) {
+      const message =
+        err.response?.data?.message || err.message || "Login failed";
 
-} catch (err) {
-
-  const message =
-    err.response?.data?.message ||
-    err.message ||
-    "Login failed";
-
-  setError(message);
-
-} finally {
-  setLoading(false);
-}
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
   const inputBase =
     "w-full rounded-xl border border-slate-200 bg-[#f5f5f5] px-4 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all sm:rounded-2xl dark:border-[#f5f5f5]/10 dark:bg-[#30333e] dark:text-[#f5f5f5] dark:placeholder-[#f5f5f5]/30";
@@ -96,7 +93,6 @@ console.log(sessionStorage.getItem("token"));
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f5f5f5] px-3 py-6 sm:px-4 sm:py-10 dark:bg-[#30333e]">
-
       {/* Background Orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-20 -top-24 h-52 w-52 rounded-full bg-[#44a83e]/10 blur-3xl dark:bg-[#44a83e]/15 sm:h-72 sm:w-72" />
@@ -155,8 +151,11 @@ console.log(sessionStorage.getItem("token"));
           )}
 
           {/* Form */}
-          <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit} noValidate>
-
+          <form
+            className="space-y-4 sm:space-y-5"
+            onSubmit={handleSubmit}
+            noValidate
+          >
             {/* Email */}
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-[#f5f5f5]">
@@ -180,7 +179,11 @@ console.log(sessionStorage.getItem("token"));
                 <label className="text-sm font-semibold text-slate-700 dark:text-[#f5f5f5]">
                   Password
                 </label>
-                <a href="#" className="text-xs font-semibold hover:underline" style={{ color: "#44a83e" }}>
+                <a
+                  href="#"
+                  className="text-xs font-semibold hover:underline"
+                  style={{ color: "#44a83e" }}
+                >
                   Forgot password?
                 </a>
               </div>
@@ -200,7 +203,11 @@ console.log(sessionStorage.getItem("token"));
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 dark:text-[#f5f5f5]/40 dark:hover:text-[#f5f5f5]"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -226,8 +233,12 @@ console.log(sessionStorage.getItem("token"));
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:rounded-2xl"
               style={{ backgroundColor: "#44a83e" }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = "#379932")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#44a83e")}
+              onMouseEnter={(e) =>
+                !loading && (e.currentTarget.style.backgroundColor = "#379932")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#44a83e")
+              }
             >
               {loading ? (
                 <>
@@ -243,7 +254,11 @@ console.log(sessionStorage.getItem("token"));
           {/* Footer */}
           <p className="mt-6 text-center text-sm text-slate-600 sm:mt-8 dark:text-[#f5f5f5]/60">
             Don't have an account?{" "}
-            <a href="/signup" className="font-semibold hover:underline" style={{ color: "#44a83e" }}>
+            <a
+              href="/signup"
+              className="font-semibold hover:underline"
+              style={{ color: "#44a83e" }}
+            >
               Create Account
             </a>
           </p>

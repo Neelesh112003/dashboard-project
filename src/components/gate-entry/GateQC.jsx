@@ -1,12 +1,19 @@
 import { useRef, useState } from "react";
 import {
-  Plus, Calendar, ClipboardList, Package,
-  Hash, CheckCircle2, Filter,
-  ChevronLeft, ChevronRight, Boxes,Eye,
+  Plus,
+  Calendar,
+  ClipboardList,
+  Package,
+  Hash,
+  CheckCircle2,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Boxes,
+  Eye,
 } from "lucide-react";
 import ExportTable from "../ExportTable";
 import { useNavigate } from "react-router-dom";
-
 
 // -------------------------------------------------------
 // STEP 1 - Our checklist data (like a mini database)
@@ -21,7 +28,7 @@ const checklistTemplates = [
       {
         name: "Display",
         subName: "Brightness",
-        valueType: "Numeric",  // check if value is between min and max
+        valueType: "Numeric", // check if value is between min and max
         min: 10,
         max: 100,
         tool: "Lux Meter",
@@ -39,7 +46,6 @@ const checklistTemplates = [
 
 // How many rows to show at a time in the history table
 const ITEMS_PER_PAGE = 10;
-
 
 // -------------------------------------------------------
 // STEP 2 - Helper functions (small reusable logic)
@@ -80,13 +86,12 @@ function getSummary(items) {
   return { total, passed, failed, percentage };
 }
 
-
 // -------------------------------------------------------
 // STEP 3 - Main Component
 // -------------------------------------------------------
 
 export default function GateQC() {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
 
   // This ref is used to open the date picker when clicking the field
   const dateRef = useRef(null);
@@ -120,7 +125,6 @@ export default function GateQC() {
   // Which page we are on in the history table
   const [currentPage, setCurrentPage] = useState(1);
 
-
   // -------------------------------------------------------
   // When user picks a checklist from the dropdown
   // -------------------------------------------------------
@@ -139,13 +143,12 @@ export default function GateQC() {
     if (found) {
       const freshItems = found.items.map((item) => ({
         ...item,
-        value: "",   // user hasn't typed anything yet
-        result: "",  // no result yet
+        value: "", // user hasn't typed anything yet
+        result: "", // no result yet
       }));
       setItems(freshItems);
     }
   }
-
 
   // -------------------------------------------------------
   // When user types a value in the "Observed Value" input
@@ -163,7 +166,6 @@ export default function GateQC() {
     // Save the updated items back to state
     setItems(updatedItems);
   }
-
 
   // -------------------------------------------------------
   // When user clicks the "Check" button to validate GRN
@@ -187,19 +189,16 @@ export default function GateQC() {
 
       // Auto-fill the product name from the API response
       setForm((prev) => ({ ...prev, product: data.product }));
-
     } catch (error) {
       console.error(error);
 
       // If API fails, use mock data for testing
       setForm((prev) => ({ ...prev, product: "Mobile" }));
       alert("Mock: GRN Validated");
-
     } finally {
       setGrnLoading(false);
     }
   }
-
 
   // -------------------------------------------------------
   // When user clicks "Save QC Report"
@@ -216,23 +215,22 @@ export default function GateQC() {
 
     // Build the new history row
     const newRow = {
-  id: Date.now(),
-  date: form.date,
-  grn: form.grn,
-  product: form.product,
-  percentage: `${percentage}%`,
-  status: status,
+      id: Date.now(),
+      date: form.date,
+      grn: form.grn,
+      product: form.product,
+      percentage: `${percentage}%`,
+      status: status,
 
-  // ADD THESE
-  checklistName:
-    checklistTemplates.find(
-      (c) => c.id == form.checklistId,
-    )?.checklistName || "",
+      // ADD THESE
+      checklistName:
+        checklistTemplates.find((c) => c.id == form.checklistId)
+          ?.checklistName || "",
 
-  checklistItems: items,
+      checklistItems: items,
 
-  checklistId: form.checklistId,
-};
+      checklistId: form.checklistId,
+    };
 
     // Add the new row to the top of the history list
     setQcList([newRow, ...qcList]);
@@ -248,22 +246,23 @@ export default function GateQC() {
     });
   }
 
-
   // -------------------------------------------------------
   // Filter the history table based on search and dropdowns
   // -------------------------------------------------------
   const filteredList = qcList.filter((row) => {
     // Check if product filter matches
-    const productMatches = filters.product === "" || row.product === filters.product;
+    const productMatches =
+      filters.product === "" || row.product === filters.product;
 
     // Check if status filter matches
-    const statusMatches = filters.status === "" || row.status === filters.status;
+    const statusMatches =
+      filters.status === "" || row.status === filters.status;
 
     // Check if search text matches anything in the row
     const searchMatches =
       search === "" ||
       Object.values(row).some((val) =>
-        String(val).toLowerCase().includes(search.toLowerCase())
+        String(val).toLowerCase().includes(search.toLowerCase()),
       );
 
     return productMatches && statusMatches && searchMatches;
@@ -273,7 +272,7 @@ export default function GateQC() {
   const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
   const currentPageRows = filteredList.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   // Get unique values for the filter dropdowns
@@ -284,14 +283,11 @@ export default function GateQC() {
   // Get pass/fail summary for the footer
   const { passed, failed, percentage } = getSummary(items);
 
-
   // -------------------------------------------------------
   // RENDER
   // -------------------------------------------------------
   return (
-   
     <div className="space-y-6 p-6 dark:text-white">
-
       {/* Page Title */}
       <div>
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
@@ -306,7 +302,6 @@ export default function GateQC() {
       {/* FORM CARD                 */}
       {/* ========================= */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
         {/* Card Header */}
         <div
           className="flex items-center gap-3 border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -323,11 +318,15 @@ export default function GateQC() {
 
         {/* Form Fields Row */}
         <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-4">
-
           {/* Date Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">Date</label>
-            <div className="relative cursor-pointer" onClick={() => dateRef.current?.showPicker()}>
+            <label className="text-xs font-semibold uppercase text-slate-500">
+              Date
+            </label>
+            <div
+              className="relative cursor-pointer"
+              onClick={() => dateRef.current?.showPicker()}
+            >
               <Calendar className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 ref={dateRef}
@@ -341,7 +340,9 @@ export default function GateQC() {
 
           {/* GRN Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">GRN Number</label>
+            <label className="text-xs font-semibold uppercase text-slate-500">
+              GRN Number
+            </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Hash className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -364,7 +365,9 @@ export default function GateQC() {
 
           {/* Product Field (read-only, filled by GRN check or checklist) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">Product</label>
+            <label className="text-xs font-semibold uppercase text-slate-500">
+              Product
+            </label>
             <div className="relative">
               <Package className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -378,7 +381,9 @@ export default function GateQC() {
 
           {/* Checklist Dropdown */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase text-slate-500">Select Checklist</label>
+            <label className="text-xs font-semibold uppercase text-slate-500">
+              Select Checklist
+            </label>
             <div className="relative">
               <CheckCircle2 className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <select
@@ -395,7 +400,6 @@ export default function GateQC() {
               </select>
             </div>
           </div>
-
         </div>
 
         {/* ========================= */}
@@ -416,22 +420,30 @@ export default function GateQC() {
                     <th className="p-3 font-semibold">Parameter</th>
                     <th className="p-3 font-semibold">Ideal Value</th>
                     <th className="p-3 font-semibold">Tool</th>
-                    <th className="p-3 text-center font-semibold">Observed Value</th>
+                    <th className="p-3 text-center font-semibold">
+                      Observed Value
+                    </th>
                     <th className="p-3 text-center font-semibold">Result</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 dark:divide-[#1b2740]">
                   {items.map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-white/5">
-
+                    <tr
+                      key={index}
+                      className="hover:bg-slate-50/50 dark:hover:bg-white/5"
+                    >
                       {/* Row number */}
                       <td className="p-3">{index + 1}</td>
 
                       {/* Parameter name and sub-name */}
                       <td className="p-3">
-                        <div className="font-medium text-slate-800 dark:text-slate-200">{item.name}</div>
-                        <div className="text-xs text-slate-400">{item.subName}</div>
+                        <div className="font-medium text-slate-800 dark:text-slate-200">
+                          {item.name}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {item.subName}
+                        </div>
                       </td>
 
                       {/* Show the allowed range or expected word */}
@@ -442,14 +454,18 @@ export default function GateQC() {
                       </td>
 
                       {/* Tool used for measurement */}
-                      <td className="p-3 text-xs italic text-slate-500">{item.tool}</td>
+                      <td className="p-3 text-xs italic text-slate-500">
+                        {item.tool}
+                      </td>
 
                       {/* Input where inspector types the observed value */}
                       <td className="p-3 text-center">
                         <input
                           className="w-24 rounded-lg border border-slate-200 p-1.5 text-center text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#0d1528]"
                           value={item.value}
-                          onChange={(e) => handleValueChange(index, e.target.value)}
+                          onChange={(e) =>
+                            handleValueChange(index, e.target.value)
+                          }
                         />
                       </td>
 
@@ -469,7 +485,6 @@ export default function GateQC() {
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
-
                     </tr>
                   ))}
                 </tbody>
@@ -478,15 +493,20 @@ export default function GateQC() {
 
             {/* Summary Footer */}
             <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-slate-100 pt-6 dark:border-[#1b2740]">
-
               {/* Pass % and Pass/Fail count */}
               <div className="flex gap-6 text-sm">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pass %</p>
-                  <p className="text-xl font-bold text-[#44a83e]">{percentage}%</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Pass %
+                  </p>
+                  <p className="text-xl font-bold text-[#44a83e]">
+                    {percentage}%
+                  </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Items (P/F)</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Items (P/F)
+                  </p>
                   <p className="text-xl font-bold text-slate-700 dark:text-slate-200">
                     {passed} / {failed}
                   </p>
@@ -513,18 +533,15 @@ export default function GateQC() {
                   Save QC Report
                 </button>
               </div>
-
             </div>
           </div>
         )}
-
       </div>
 
       {/* ========================= */}
       {/* HISTORY TABLE             */}
       {/* ========================= */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
         {/* History Card Header */}
         <div
           className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -536,14 +553,18 @@ export default function GateQC() {
                 <Boxes className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">QC Inspection History</h2>
-                <p className="text-xs text-white/60">{filteredList.length} entries</p>
+                <h2 className="text-lg font-semibold text-white">
+                  QC Inspection History
+                </h2>
+                <p className="text-xs text-white/60">
+                  {filteredList.length} entries
+                </p>
               </div>
             </div>
 
             {/* Export and Search */}
             <div className="ml-auto flex items-center gap-2">
-              <ExportTable data={filteredList} fileName="gate-qc-history" />
+             
               <input
                 type="text"
                 placeholder="Search..."
@@ -554,6 +575,7 @@ export default function GateQC() {
                 }}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none"
               />
+               <ExportTable data={filteredList} fileName="gate-qc-history" />
             </div>
           </div>
         </div>
@@ -605,8 +627,8 @@ export default function GateQC() {
                 <th className="px-6 py-3 text-left">GRN</th>
                 <th className="px-6 py-3 text-left">Product</th>
                 <th className="px-6 py-3 text-left">Result %</th>
-               <th className="px-6 py-3 text-left">Status</th>
-<th className="px-6 py-3 text-left">Actions</th>
+                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Actions</th>
               </tr>
             </thead>
 
@@ -614,7 +636,10 @@ export default function GateQC() {
               {/* Show message if no rows */}
               {currentPageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-sm text-slate-400">
+                  <td
+                    colSpan={6}
+                    className="py-10 text-center text-sm text-slate-400"
+                  >
                     No QC history found
                   </td>
                 </tr>
@@ -625,7 +650,9 @@ export default function GateQC() {
                     <td className="px-6 py-4">{row.date}</td>
                     <td className="px-6 py-4">{row.grn}</td>
                     <td className="px-6 py-4">{row.product}</td>
-                    <td className="px-6 py-4 font-semibold">{row.percentage}</td>
+                    <td className="px-6 py-4 font-semibold">
+                      {row.percentage}
+                    </td>
                     <td className="px-6 py-4">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -638,20 +665,20 @@ export default function GateQC() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-  <button
-    onClick={() =>
-      navigate("/qc-receipt", {
-        state: {
-          qc: row,
-        },
-      })
-    }
-    className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
-  >
-    <Eye className="h-3.5 w-3.5" />
-    View
-  </button>
-</td>
+                      <button
+                        onClick={() =>
+                          navigate("/qc-receipt", {
+                            state: {
+                              qc: row,
+                            },
+                          })
+                        }
+                        className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -662,23 +689,24 @@ export default function GateQC() {
         {/* Pagination - only shows if there is more than 1 page */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-
             {/* Go to previous page */}
             <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}>
               <ChevronLeft />
             </button>
 
             {/* Current page out of total */}
-            <span>{currentPage} / {totalPages}</span>
+            <span>
+              {currentPage} / {totalPages}
+            </span>
 
             {/* Go to next page */}
-            <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            >
               <ChevronRight />
             </button>
-
           </div>
         )}
-
       </div>
     </div>
   );
