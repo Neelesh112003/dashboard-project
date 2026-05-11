@@ -76,7 +76,7 @@ export default function BankBook() {
       setError("");
 
       const response = await api.get("/v1/bankbook/list");
-      console.log('response from the server ',response.data);
+      console.log("response from the server ", response.data);
       // assuming backend sends:
       // { data: [...] }
 
@@ -111,10 +111,10 @@ export default function BankBook() {
           "Content-Type": "application/json",
         },
       });
-
+      console.log("data sent to server");
       // add newly created item
       await fetchBankBook();
-      
+
       setShowForm(false);
 
       setFormValues({

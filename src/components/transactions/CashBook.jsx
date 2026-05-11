@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Calendar,
@@ -11,14 +11,13 @@ import {
   ChevronRight,
   Boxes,
 } from "lucide-react";
-
+import api from "../../api/axios";
 import ExportTable from "../ExportTable";
 
 /* =========================================================
    CONSTANTS
 ========================================================= */
 const ITEMS_PER_PAGE = 10;
-const date = Date.now()
 
 /* =========================================================
    MAIN COMPONENT
@@ -44,15 +43,39 @@ export default function CashBook() {
   const [filters, setFilters] = useState({
     type: "",
   });
-
+  //LOading state
+  const [loading, setLoading] = useState(false);
   // Form data
   const [formData, setFormData] = useState({
-    date: "",
+    date: new Date().toISOString().split("T")[0],
     particular: "",
     amount: "",
     type: "entry",
   });
 
+  /* =========================================================
+     API INTEGRATION
+  ========================================================= */
+  const fetchCashBook = async () => {
+    try {
+      setLoading(true);
+
+      const response = await api.get("/v1/cashbook/list");
+
+      console.log(response.data);
+
+      // adjust according to backend response
+      // setTransactions(
+      //   response.data.data || response.data,
+      // );
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
   /* =========================================================
      HANDLE INPUT CHANGE
   ========================================================= */
@@ -68,25 +91,31 @@ export default function CashBook() {
   /* =========================================================
      ADD TRANSACTION
   ========================================================= */
-  
-  const addTransaction = (transactionData) => {
-    const newTransaction = {
-      ...transactionData,
-      id: date,
-    };
 
-    setTransactions((prev) => [
-      newTransaction,
-      ...prev,
-    ]);
+  const addTransaction = async (transactionData) => {
+    try {
+      const payload = {
+        date: transactionData.date,
+        particular: transactionData.particular,
+        amount: transactionData.amount,
+        type: transactionData.type,
+      };
 
-    // Reset form
-    resetForm();
+      const response = await api.post("/v1/cashbook/create", payload);
 
-    // Close form
-    setShowForm(false);
+      console.log("response from the server after creating cash trasaction",response.data);
+
+      // reload latest data
+      fetchCashBook();
+
+      resetForm();
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
   };
-
   /* =========================================================
      RESET FORM
   ========================================================= */
@@ -105,19 +134,27 @@ export default function CashBook() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
+    if (!formData.date || !formData.particular || !formData.amount) {
+      alert("Please fill all fields");
+      return;
+    }
+
     addTransaction(formData);
   };
 
   /* =========================================================
      DELETE TRANSACTION
   ========================================================= */
-  const deleteTransaction = (id) => {
-    const updatedTransactions =
-      transactions.filter(
-        (transaction) => transaction.id !== id,
-      );
+  const deleteTransaction = async (tr_no) => {
+    try {
+      await api.delete(`/v1/cashbook/delete/${tr_no}`);
 
-    setTransactions(updatedTransactions);
+      fetchCashBook();
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
   };
 
   /* =========================================================
@@ -134,34 +171,26 @@ export default function CashBook() {
       const csvText = e.target.result;
 
       // Convert CSV into rows
-      const rows = csvText
-        .split("\n")
-        .map((row) => row.split(","));
+      const rows = csvText.split("\n").map((row) => row.split(","));
 
       // First row = headers
       const headers = rows[0];
 
       // Remaining rows = data
-      const importedTransactions = rows
-        .slice(1)
-        .map((row) => {
-          const transaction = {};
+      const importedTransactions = rows.slice(1).map((row) => {
+        const transaction = {};
 
-          headers.forEach((header, index) => {
-            transaction[header.trim()] =
-              row[index]?.trim();
-          });
-
-          return {
-            ...transaction,
-            id: Date.now() + Math.random(),
-          };
+        headers.forEach((header, index) => {
+          transaction[header.trim()] = row[index]?.trim();
         });
 
-      setTransactions((prev) => [
-        ...importedTransactions,
-        ...prev,
-      ]);
+        return {
+          ...transaction,
+          id: Date.now() + Math.random(),
+        };
+      });
+
+      setTransactions((prev) => [...importedTransactions, ...prev]);
     };
 
     reader.readAsText(file);
@@ -173,10 +202,7 @@ export default function CashBook() {
   const filteredTransactions = transactions
     .filter((transaction) => {
       // Filter by type
-      if (
-        filters.type &&
-        transaction.type !== filters.type
-      ) {
+      if (filters.type && transaction.type !== filters.type) {
         return false;
       }
 
@@ -186,40 +212,30 @@ export default function CashBook() {
       // Search filter
       if (!searchText) return true;
 
-      return Object.values(transaction).some(
-        (value) =>
-          String(value)
-            .toLowerCase()
-            .includes(searchText.toLowerCase()),
+      return Object.values(transaction).some((value) =>
+        String(value).toLowerCase().includes(searchText.toLowerCase()),
       );
     });
 
   /* =========================================================
      PAGINATION
   ========================================================= */
-  const totalPages = Math.ceil(
-    filteredTransactions.length /
-      ITEMS_PER_PAGE,
-  );
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
 
-  const paginatedTransactions =
-    filteredTransactions.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE,
-    );
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   /* =========================================================
      GET UNIQUE VALUES FOR FILTERS
   ========================================================= */
   const getUniqueValues = (key) => {
-    return [
-      ...new Set(
-        transactions
-          .map((item) => item[key])
-          .filter(Boolean),
-      ),
-    ];
+    return [...new Set(transactions.map((item) => item[key]).filter(Boolean))];
   };
+  useEffect(() => {
+    fetchCashBook();
+  }, []);
 
   /* =========================================================
      UI
@@ -240,13 +256,11 @@ export default function CashBook() {
       </div>
 
       <div className="space-y-8">
-
         {/* =====================================================
             FORM SECTION
         ====================================================== */}
         {showForm && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
             {/* HEADER */}
             <div
               className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -265,18 +279,14 @@ export default function CashBook() {
                     Cash Transaction
                   </h2>
 
-                  <p className="text-xs text-white/60">
-                    Add cash entry
-                  </p>
+                  <p className="text-xs text-white/60">Add cash entry</p>
                 </div>
               </div>
 
               {/* IMPORT BUTTON */}
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white hover:bg-white/10">
                 <Upload className="h-4 w-4" />
-
                 Import
-
                 <input
                   type="file"
                   accept=".csv"
@@ -289,7 +299,6 @@ export default function CashBook() {
             {/* FORM */}
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
-
                 {/* DATE */}
                 <InputField
                   label="Date"
@@ -353,13 +362,9 @@ export default function CashBook() {
                     onChange={handleInputChange}
                     className={inputClass}
                   >
-                    <option value="entry">
-                      entry
-                    </option>
+                    <option value="entry">entry</option>
 
-                    <option value="drawing">
-                      drawing
-                    </option>
+                    <option value="drawings">drawings</option>
                   </select>
                 </InputField>
               </div>
@@ -377,12 +382,11 @@ export default function CashBook() {
             </form>
           </div>
         )}
-
+        {loading && <div className="p-6 text-center">Loading...</div>}
         {/* =====================================================
             TABLE SECTION
         ====================================================== */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
           {/* HEADER */}
           <div
             className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
@@ -391,7 +395,6 @@ export default function CashBook() {
             }}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-
               {/* LEFT SIDE */}
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
@@ -404,26 +407,20 @@ export default function CashBook() {
                   </h2>
 
                   <p className="text-xs text-white/60">
-                    {
-                      filteredTransactions.length
-                    }{" "}
-                    items
+                    {filteredTransactions.length} items
                   </p>
                 </div>
               </div>
 
               {/* RIGHT SIDE */}
               <div className="ml-auto flex flex-wrap items-center gap-2">
-
                 {/* SEARCH */}
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchText}
                   onChange={(e) => {
-                    setSearchText(
-                      e.target.value,
-                    );
+                    setSearchText(e.target.value);
 
                     setCurrentPage(1);
                   }}
@@ -459,7 +456,6 @@ export default function CashBook() {
 
           {/* FILTERS */}
           <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-6 py-3 dark:border-[#162033] dark:bg-[#0d1f38]">
-
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
               <Filter className="h-3.5 w-3.5" />
               Filter
@@ -477,53 +473,39 @@ export default function CashBook() {
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
             >
-              <option value="">
-                All type
-              </option>
+              <option value="">All type</option>
 
-              {getUniqueValues("type").map(
-                (value) => (
-                  <option
-                    key={value}
-                    value={value}
-                  >
-                    {value}
-                  </option>
-                ),
-              )}
+              {getUniqueValues("type").map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
             </select>
           </div>
 
           {/* TABLE */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-
               {/* TABLE HEADER */}
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#162033]">
-                  {[
-                    "Date",
-                    "Particular",
-                    "Amount",
-                    "Type",
-                    "Actions",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400"
-                    >
-                      {heading}
-                    </th>
-                  ))}
+                  {["Date", "Particular", "Amount", "Type", "Actions"].map(
+                    (heading) => (
+                      <th
+                        key={heading}
+                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400"
+                      >
+                        {heading}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
 
               {/* TABLE BODY */}
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
-
                 {/* NO DATA */}
-                {paginatedTransactions.length ===
-                0 ? (
+                {paginatedTransactions.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
@@ -533,46 +515,30 @@ export default function CashBook() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedTransactions.map(
-                    (transaction) => (
-                      <tr
-                        key={transaction.id}
-                        className="hover:bg-slate-50 dark:hover:bg-[#11182b]"
-                      >
-                        <td className="px-6 py-4">
-                          {transaction.date}
-                        </td>
+                  paginatedTransactions.map((transaction) => (
+                    <tr
+                      key={transaction.sn}
+                      className="hover:bg-slate-50 dark:hover:bg-[#11182b]"
+                    >
+                      <td className="px-6 py-4">{transaction.date}</td>
 
-                        <td className="px-6 py-4">
-                          {
-                            transaction.particular
-                          }
-                        </td>
+                      <td className="px-6 py-4">{transaction.particular}</td>
 
-                        <td className="px-6 py-4">
-                          {transaction.amount}
-                        </td>
+                      <td className="px-6 py-4">{transaction.amount}</td>
 
-                        <td className="px-6 py-4">
-                          {transaction.type}
-                        </td>
+                      <td className="px-6 py-4">{transaction.type}</td>
 
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() =>
-                              deleteTransaction(
-                                transaction.id,
-                              )
-                            }
-                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ),
-                  )
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => deleteTransaction(transaction.tr_no)}
+                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
@@ -581,14 +547,9 @@ export default function CashBook() {
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-[#162033]">
-
               {/* PREVIOUS */}
               <button
-                onClick={() =>
-                  setCurrentPage((prev) =>
-                    Math.max(prev - 1, 1),
-                  )
-                }
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               >
                 <ChevronLeft />
               </button>
@@ -601,12 +562,7 @@ export default function CashBook() {
               {/* NEXT */}
               <button
                 onClick={() =>
-                  setCurrentPage((prev) =>
-                    Math.min(
-                      prev + 1,
-                      totalPages,
-                    ),
-                  )
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
               >
                 <ChevronRight />
@@ -622,11 +578,7 @@ export default function CashBook() {
 /* =========================================================
    REUSABLE INPUT FIELD COMPONENT
 ========================================================= */
-function InputField({
-  label,
-  icon,
-  children,
-}) {
+function InputField({ label, icon, children }) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
