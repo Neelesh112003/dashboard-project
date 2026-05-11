@@ -67,21 +67,23 @@ export default function ManageBanks() {
      API INTEGRATION
   ========================================================= */
 
-  const fetchBanks = async () => {
-    try {
-      setLoading(true);
+const fetchBanks = async () => {
+  try {
+    setLoading(true);
 
-      const response = await api.get("/v1/banks/list");
+    const response = await api.get("/v1/banks/list");
 
-      console.log(response.data);
+    console.log(response.data);
 
-      setBanks([]);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setBanks(
+      response.data.data.data || []
+    );
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* =========================================================
      HANDLE INPUT CHANGE
@@ -129,6 +131,7 @@ export default function ManageBanks() {
       };
 
       console.log("data sent to server");
+      console.log(payload)
       const response = await api.post("/v1/banks/create", payload);
       console.log(response);
 

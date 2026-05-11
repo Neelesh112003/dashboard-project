@@ -65,9 +65,9 @@ export default function CashBook() {
       console.log(response.data);
 
       // adjust according to backend response
-      // setTransactions(
-      //   response.data.data || response.data,
-      // );
+      setTransactions(
+       response.data.data.data || []
+      );
     } catch (error) {
       console.error(error);
 

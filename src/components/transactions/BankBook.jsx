@@ -80,7 +80,7 @@ export default function BankBook() {
       // assuming backend sends:
       // { data: [...] }
 
-      setTransactionList([]);
+      setTransactionList( response.data.data.data || []);
     } catch (err) {
       console.error(err);
       setError("Failed to load bank book");
