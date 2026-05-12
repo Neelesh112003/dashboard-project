@@ -20,6 +20,8 @@ import {
 const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
+
+
   // Is the "Add Transaction" form open or closed?
   const [showForm, setShowForm] = useState(false);
 
@@ -31,14 +33,7 @@ export default function BankBook() {
   const [error, setError] = useState("");
 
   // List of available banks
-  const [bankOptions] = useState([
-    { id: 1, name: "SBI" },
-    { id: 2, name: "HDFC" },
-    { id: 3, name: "UNION" },
-    { id: 4, name: "ICICI" },
-    { id: 5, name: "PUNJAB" },
-  ]);
-
+const [bankOptions, setBankOptions] = useState([]);
   // What the user is typing in the form right now
   const [formValues, setFormValues] = useState({
     date: "",
@@ -68,6 +63,24 @@ export default function BankBook() {
 
   // ── FORM HANDLERS ──────────────────────────────────────────────────────────
 
+//fetching banks name from the backend
+const fetchBanks = async () => {
+  try {
+    setLoading(true);
+
+    const response = await api.get("/v1/banks/list");
+//
+    console.log("banks data",response.data);
+
+    setBankOptions(response.data.data.data || []);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   //calling api and handling response and errors
 
   async function fetchBankBook() {
@@ -80,7 +93,7 @@ export default function BankBook() {
       // assuming backend sends:
       // { data: [...] }
 
-      setTransactionList( response.data.data.data || []);
+      setTransactionList(response.data.data.data || []);
     } catch (err) {
       console.error(err);
       setError("Failed to load bank book");
@@ -104,14 +117,14 @@ export default function BankBook() {
       alert("Please fill all fields");
       return;
     }
-
+console.log(formValues)
     try {
-      await api.post("/v1/bankbook/create", formValues, {
+     const response =  await api.post("/v1/bankbook/create", formValues, {
         headers: {
           "Content-Type": "application/json",
         },
       });
-      console.log("data sent to server");
+      console.log("data sent to server",response);
       // add newly created item
       await fetchBankBook();
 
@@ -121,8 +134,8 @@ export default function BankBook() {
         date: "",
         particular: "",
         amount: "",
-        bank_id: 1,
-        bank_name: "SBI",
+       bank_id: bankOptions[0]?.bank_id || "",
+bank_name: bankOptions[0]?.bank_name || "",
         type: "entry",
       });
     } catch (err) {
@@ -138,8 +151,9 @@ export default function BankBook() {
   // When the user clicks "Delete", remove that transaction from the list
   async function handleDelete(id) {
     try {
-      await api.delete(`/v1/bankbook/delete/${id}`);
-
+      const response = await api.delete(`/v1/bankbook/delete/${id}`);
+      console.log(`row deleted with id : ${id}`);
+      console.log(response);
       await fetchBankBook();
     } catch (err) {
       console.error(err);
@@ -248,6 +262,7 @@ export default function BankBook() {
   //caling the api function to retrieve data
   useEffect(() => {
     fetchBankBook();
+    fetchBanks();
   }, []);
 
   return (
@@ -261,8 +276,8 @@ export default function BankBook() {
             setFormValues((prev) => ({
               ...prev,
               date: new Date().toISOString().split("T")[0],
-              bank_id: 1,
-              bank_name: "SBI",
+             bank_id: bankOptions[0]?.bank_id || "",
+bank_name: bankOptions[0]?.bank_name || "",
             }));
           }}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
@@ -373,23 +388,23 @@ export default function BankBook() {
                       name="bank_id"
                       value={formValues.bank_id}
                       onChange={(e) => {
-                        const selectedBank = bankOptions.find(
-                          (bank) => bank.id === Number(e.target.value),
-                        );
+  const selectedBank = bankOptions.find(
+    (bank) => bank.bank_id === Number(e.target.value),
+  );
 
-                        setFormValues((prev) => ({
-                          ...prev,
-                          bank_id: selectedBank.id,
-                          bank_name: selectedBank.name,
-                        }));
-                      }}
+  setFormValues((prev) => ({
+    ...prev,
+    bank_id: selectedBank.bank_id,
+    bank_name: selectedBank.bank_name,
+  }));
+}}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     >
-                      {bankOptions.map((bank) => (
-                        <option key={bank.id} value={bank.id}>
-                          {bank.name}
-                        </option>
-                      ))}
+                     {bankOptions.map((bank) => (
+  <option key={bank.bank_id} value={bank.bank_id}>
+    {bank.bank_name}
+  </option>
+))}
                     </select>
                   </div>
                 </div>
@@ -408,7 +423,7 @@ export default function BankBook() {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     >
                       <option value="entry">entry</option>
-                      <option value="drawing">drawing</option>
+                      <option value="drawings">drawings</option>
                     </select>
                   </div>
                 </div>
@@ -565,7 +580,7 @@ export default function BankBook() {
                   // Otherwise render one row per transaction
                   rowsOnThisPage.map((row) => (
                     <tr
-                      key={row.id}
+                      key={row.sn}
                       className="hover:bg-slate-50 dark:hover:bg-[#11182b]"
                     >
                       <td className="px-6 py-4">{row.date}</td>
@@ -576,7 +591,7 @@ export default function BankBook() {
                       <td className="px-6 py-4">
                         {/* Remove this transaction */}
                         <button
-                          onClick={() => handleDelete(row.id)}
+                          onClick={() => handleDelete(row.tr_no)}
                           className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

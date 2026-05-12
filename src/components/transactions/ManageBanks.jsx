@@ -161,8 +161,9 @@ const fetchBanks = async () => {
   ========================================================= */
   const deleteBank = async (id) => {
     try {
-      await api.delete(`/v1/banks/delete/${id}`);
-
+      console.log(id)
+     const response =  await api.delete(`/v1/banks/delete/${id}`);
+console.log("deleted bank with id ",id,response)
       fetchBanks();
     } catch (error) {
       console.error(error);
@@ -603,7 +604,9 @@ const fetchBanks = async () => {
 
                           {/* DELETE BUTTON */}
                           <button
-                            onClick={() => deleteBank(bank.bank_id)}
+                            onClick={() => {
+                              deleteBank(bank.bank_id)}
+                            }
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
