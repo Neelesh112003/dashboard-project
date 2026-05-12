@@ -17,6 +17,7 @@ import {
   Pencil,
 } from "lucide-react";
 import ExportTable from "../ExportTable";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 
 /* =========================================================
    CONSTANTS
@@ -35,6 +36,11 @@ export default function ManageBanks() {
   /* =========================================================
      STATE
   ========================================================= */
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    id: null,
+    name: "",
+  });
   // Show / hide form
   const [showForm, setShowForm] = useState(false);
 
@@ -131,7 +137,7 @@ export default function ManageBanks() {
 
       const response = await api.put(`/v1/banks/update/${id}`, payload);
 
-      console.log("update banks response",response);
+      console.log("update banks response", response);
 
       fetchBanks();
 
@@ -648,7 +654,17 @@ export default function ManageBanks() {
 
                       <td className="px-6 py-4">{bank.ifsc_code}</td>
 
-                      <td className="px-6 py-4">{bank.account_type}</td>
+                   <td className="px-6 py-4">
+  <span
+    className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ${
+      bank.account_type === "Current"
+        ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+        : "bg-blue-50 text-blue-600 border border-blue-200"
+    }`}
+  >
+    {bank.account_type}
+  </span>
+</td>
 
                       <td className="px-6 py-4">{bank.account_number}</td>
                       <td className="px-6 py-4">{bank.branch}</td>
@@ -682,9 +698,13 @@ export default function ManageBanks() {
 
                           {/* DELETE BUTTON */}
                           <button
-                            onClick={() => {
-                              deleteBank(bank.bank_id);
-                            }}
+                            onClick={() =>
+                              setDeleteModal({
+                                open: true,
+                                id: bank.bank_id,
+                                name: bank.bank_name,
+                              })
+                            }
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -726,6 +746,27 @@ export default function ManageBanks() {
           )}
         </div>
       </div>
+      <DeleteConfirmModal
+        isOpen={deleteModal.open}
+        title="Delete Bank"
+        message={`Are you sure you want to delete "${deleteModal.name}" ?`}
+        onClose={() =>
+          setDeleteModal({
+            open: false,
+            id: null,
+            name: "",
+          })
+        }
+        onConfirm={async () => {
+          await deleteBank(deleteModal.id);
+
+          setDeleteModal({
+            open: false,
+            id: null,
+            name: "",
+          });
+        }}
+      />
     </>
   );
 }

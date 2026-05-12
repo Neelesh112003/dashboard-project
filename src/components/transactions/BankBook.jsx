@@ -16,10 +16,21 @@ import {
   Boxes,
   Pencil,
 } from "lucide-react";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 // How many rows to show per page
 const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
+  // Date filters
+const [fromDate, setFromDate] = useState("");
+const [toDate, setToDate] = useState("");
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [deleteData, setDeleteData] = useState({
+    id: null,
+    title: "",
+  });
   // Is the "Add Transaction" form open or closed?
   const [showForm, setShowForm] = useState(false);
   // Which transaction is being edited
@@ -113,7 +124,6 @@ export default function BankBook() {
   //fetching banks name from the backend
   const fetchBanks = async () => {
     try {
-
       const response = await api.get("/v1/banks/list");
       //
       console.log("banks data fetchBanks", response.data);
@@ -128,7 +138,6 @@ export default function BankBook() {
 
   async function fetchBankBook() {
     try {
-
       const response = await api.get("/v1/bankbook/list");
       console.log("response from the server fetchBankBook ", response.data);
       // assuming backend sends:
@@ -137,7 +146,6 @@ export default function BankBook() {
       setTransactionList(response.data.data.data || []);
     } catch (err) {
       console.error(err);
-
     }
   }
 
@@ -250,32 +258,47 @@ export default function BankBook() {
     reader.readAsText(file);
   }
 
-  // ── FILTERING & SEARCHING ──────────────────────────────────────────────────
+// ── FILTERING & SEARCHING ──────────────────────────────────────────────────
 
-  // Start with the full list
-  let visibleTransactions = transactionList;
+// Start with full list
+let visibleTransactions = transactionList;
 
-  // If a bank filter is selected in the dropdown, apply it
-  if (filterBank !== "") {
-    visibleTransactions = visibleTransactions.filter(
-      (t) => t.bank_name === filterBank,
+// Filter by bank
+if (filterBank !== "") {
+  visibleTransactions = visibleTransactions.filter(
+    (t) => t.bank_name === filterBank,
+  );
+}
+
+// Filter by type
+if (filterType !== "") {
+  visibleTransactions = visibleTransactions.filter(
+    (t) => t.type === filterType,
+  );
+}
+
+// Filter by FROM date
+if (fromDate !== "") {
+  visibleTransactions = visibleTransactions.filter(
+    (t) => new Date(t.date) >= new Date(fromDate),
+  );
+}
+
+// Filter by TO date
+if (toDate !== "") {
+  visibleTransactions = visibleTransactions.filter(
+    (t) => new Date(t.date) <= new Date(toDate),
+  );
+}
+
+// Search filter
+if (searchText !== "") {
+  visibleTransactions = visibleTransactions.filter((t) => {
+    return Object.values(t).some((value) =>
+      String(value).toLowerCase().includes(searchText.toLowerCase()),
     );
-  }
-
-  // Filter by type
-  if (filterType !== "") {
-    visibleTransactions = visibleTransactions.filter(
-      (t) => t.type === filterType,
-    );
-  }
-  // If the user typed something in search, keep only rows where any field matches
-  if (searchText !== "") {
-    visibleTransactions = visibleTransactions.filter((t) => {
-      return Object.values(t).some((value) =>
-        String(value).toLowerCase().includes(searchText.toLowerCase()),
-      );
-    });
-  }
+  });
+}
 
   // ── PAGINATION ─────────────────────────────────────────────────────────────
 
@@ -552,7 +575,41 @@ export default function BankBook() {
               <Filter className="h-3.5 w-3.5" />
               Filter
             </div>
+{/* From Date */}
+<div className="flex items-center gap-2">
+  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+    From
+  </label>
 
+  <input
+    type="date"
+    value={fromDate}
+    onChange={(e) => {
+      setFromDate(e.target.value);
+      setCurrentPage(1);
+    }}
+    onClick={(e) => e.target.showPicker()}
+    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+  />
+</div>
+
+{/* To Date */}
+<div className="flex items-center gap-2">
+  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+    To
+  </label>
+
+  <input
+    type="date"
+    value={toDate}
+    onChange={(e) => {
+      setToDate(e.target.value);
+      setCurrentPage(1);
+    }}
+    onClick={(e) => e.target.showPicker()}
+    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+  />
+</div>
             {/* Filter by bank */}
             <select
               value={filterBank}
@@ -638,30 +695,45 @@ export default function BankBook() {
                       <td className="px-6 py-4">{row.particular}</td>
                       <td className="px-6 py-4">{row.amount}</td>
                       <td className="px-6 py-4">{row.bank_name}</td>
-                      <td className="px-6 py-4">{row.type}</td>
-                     <td className="px-6 py-4">
-  <div className="flex items-center gap-2">
-
-    {/* EDIT */}
-    <button
-      onClick={() => handleEdit(row)}
-      className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
-    >
-      <Pencil className="h-3.5 w-3.5" />
-      Edit
-    </button>
-
-    {/* DELETE */}
-    <button
-      onClick={() => handleDelete(row.tr_no)}
-      className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-    >
-      <Trash2 className="h-3.5 w-3.5" />
-      Delete
-    </button>
-
-  </div>
+                <td className="px-6 py-4">
+  <span
+    className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${
+      row.type === "entry"
+        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+        : "border-rose-200 bg-rose-50 text-rose-600"
+    }`}
+  >
+    {row.type}
+  </span>
 </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {/* EDIT */}
+                          <button
+                            onClick={() => handleEdit(row)}
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            onClick={() => {
+                              setDeleteData({
+                                id: row.tr_no,
+                                title: `${row.date} - ${row.particular}`,
+                              });
+
+                              setShowDeleteModal(true);
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -691,6 +763,28 @@ export default function BankBook() {
           )}
         </div>
       </div>
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        title={deleteData.title}
+        onClose={() => {
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+        onConfirm={async () => {
+          await handleDelete(deleteData.id);
+
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+      />
     </>
   );
 }

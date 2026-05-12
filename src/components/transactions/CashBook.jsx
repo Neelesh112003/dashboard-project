@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "../../api/axios";
 import ExportTable from "../ExportTable";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 
 /* =========================================================
    CONSTANTS
@@ -28,6 +29,13 @@ export default function CashBook() {
      STATE
   ========================================================= */
 
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [deleteData, setDeleteData] = useState({
+    id: null,
+    title: "",
+  });
   // Show / hide transaction form
   const [showForm, setShowForm] = useState(false);
   //state od editing
@@ -44,9 +52,11 @@ export default function CashBook() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filter values
-  const [filters, setFilters] = useState({
-    type: "",
-  });
+ const [filters, setFilters] = useState({
+  type: "",
+  fromDate: "",
+  toDate: "",
+});
 
   // Form data
   const [formData, setFormData] = useState({
@@ -127,7 +137,7 @@ export default function CashBook() {
         amount: transactionData.amount,
         type: transactionData.type,
       };
-console.log(id)
+      console.log(id);
       const response = await api.put(`/v1/cashbook/update/${id}`, payload);
 
       console.log("updated transaction", response.data);
@@ -148,7 +158,7 @@ console.log(id)
   /* =========================================================
    EDIT TRANSACTION
 ========================================================= */
-  const editTransaction = (id,transaction) => {
+  const editTransaction = (id, transaction) => {
     setFormData({
       date: transaction.date,
       particular: transaction.particular,
@@ -250,23 +260,40 @@ console.log(id)
   /* =========================================================
      FILTER TRANSACTIONS
   ========================================================= */
-  const filteredTransactions = transactions
-    .filter((transaction) => {
-      // Filter by type
-      if (filters.type && transaction.type !== filters.type) {
-        return false;
-      }
+const filteredTransactions = transactions
+  .filter((transaction) => {
+    // TYPE FILTER
+    if (filters.type && transaction.type !== filters.type) {
+      return false;
+    }
 
-      return true;
-    })
-    .filter((transaction) => {
-      // Search filter
-      if (!searchText) return true;
+    // FROM DATE FILTER
+    if (
+      filters.fromDate &&
+      new Date(transaction.date) < new Date(filters.fromDate)
+    ) {
+      return false;
+    }
 
-      return Object.values(transaction).some((value) =>
-        String(value).toLowerCase().includes(searchText.toLowerCase()),
-      );
-    });
+    // TO DATE FILTER
+    if (
+      filters.toDate &&
+      new Date(transaction.date) > new Date(filters.toDate)
+    ) {
+      return false;
+    }
+
+    return true;
+  })
+
+  // SEARCH FILTER
+  .filter((transaction) => {
+    if (!searchText) return true;
+
+    return Object.values(transaction).some((value) =>
+      String(value).toLowerCase().includes(searchText.toLowerCase()),
+    );
+  });
 
   /* =========================================================
      PAGINATION
@@ -520,7 +547,49 @@ console.log(id)
               <Filter className="h-3.5 w-3.5" />
               Filter
             </div>
+{/* FROM DATE */}
+<div className="flex items-center gap-2">
+  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+    From
+  </label>
 
+  <input
+    type="date"
+    value={filters.fromDate}
+    onChange={(e) => {
+      setFilters({
+        ...filters,
+        fromDate: e.target.value,
+      });
+
+      setCurrentPage(1);
+    }}
+    onClick={(e) => e.target.showPicker()}
+    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+  />
+</div>
+
+{/* TO DATE */}
+<div className="flex items-center gap-2">
+  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+    To
+  </label>
+
+  <input
+    type="date"
+    value={filters.toDate}
+    onChange={(e) => {
+      setFilters({
+        ...filters,
+        toDate: e.target.value,
+      });
+
+      setCurrentPage(1);
+    }}
+    onClick={(e) => e.target.showPicker()}
+    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+  />
+</div>
             <select
               value={filters.type}
               onChange={(e) => {
@@ -586,13 +655,25 @@ console.log(id)
 
                       <td className="px-6 py-4">{transaction.amount}</td>
 
-                      <td className="px-6 py-4">{transaction.type}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                            transaction.type === "entry"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              : "border-rose-200 bg-rose-50 text-rose-600"
+                          }`}
+                        >
+                          {transaction.type}
+                        </span>
+                      </td>
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {/* EDIT */}
                           <button
-                            onClick={() => editTransaction(transaction.sn,transaction)}
+                            onClick={() =>
+                              editTransaction(transaction.sn, transaction)
+                            }
                             className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -601,7 +682,14 @@ console.log(id)
 
                           {/* DELETE */}
                           <button
-                            onClick={() => deleteTransaction(transaction.tr_no)}
+                            onClick={() => {
+                              setDeleteData({
+                                id: transaction.tr_no,
+                                title: `${transaction.date} - ${transaction.particular}`,
+                              });
+
+                              setShowDeleteModal(true);
+                            }}
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -643,6 +731,28 @@ console.log(id)
           )}
         </div>
       </div>
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        title={deleteData.title}
+        onClose={() => {
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+        onConfirm={async () => {
+          await deleteTransaction(deleteData.id);
+
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+      />
     </>
   );
 }
