@@ -1,8 +1,8 @@
-import DashboardStats from "./overview/DashboardStats";
-import MonthlyTarget from "./overview/MonthlyTarget";
-import MonthlySalesChart from "./overview/MonthlySalesChart";
-import RecentOrders from "./overview/RecentOrders";
-import AddProduct from "./overview/AddProduct";
+import DashboardStats from "../overview/DashboardStats";
+import MonthlyTarget from "../overview/MonthlyTarget";
+import MonthlySalesChart from "../overview/MonthlySalesChart";
+import RecentOrders from "../overview/RecentOrders";
+import AddProduct from "../overview/AddProduct";
 
 export default function Overview() {
   return (

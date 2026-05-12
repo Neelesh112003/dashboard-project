@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import {
   LayoutDashboard,
   Users,
@@ -25,8 +25,10 @@ import {
   X,
   CircleUserRound,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
+import { useState, useEffect } from "react";
 
 const sidebarItems = [
   {
@@ -174,6 +176,10 @@ const sidebarItems = [
 ];
 
 export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [openMenu, setOpenMenu] = useState(null);
   const { isExpanded, isMobileOpen, closeMobileSidebar } = useSidebar();
   const [openMenus, setOpenMenus] = useState({});
 
@@ -183,6 +189,19 @@ export default function Sidebar() {
       [name]: !prev[name],
     }));
   };
+
+  // ✅ AUTO OPEN BASED ON ROUTE
+  useEffect(() => {
+    const activeMenu = sidebarItems.find((item) => {
+      if (!item.children) return false;
+
+      return item.children.some((child) =>
+        location.pathname.startsWith(child.href),
+      );
+    });
+
+    setOpenMenu(activeMenu ? activeMenu.name : null);
+  }, [location.pathname]);
 
   return (
     <>
@@ -195,23 +214,19 @@ export default function Sidebar() {
 
       <aside
         className={`fixed left-0 top-0 z-50 flex h-screen flex-col
-          border-r border-slate-300 bg-white dark:bg-[#0b1220]
-          dark:border-[#162033] transition-all duration-300
-          ${isExpanded ? "w-64" : "w-20"}
-          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0`}
+        border-r border-slate-300 bg-white dark:bg-[#081028]
+        dark:border-[#162033] transition-all duration-300  dark:text-white
+        ${isExpanded ? "w-64" : "w-20"}
+        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+        lg:translate-x-0`}
       >
-        {/* Header */}
+        {/* HEADER */}
         <div
           className="flex items-center justify-between px-4 py-2 shrink-0"
           style={{ backgroundColor: "#3a3c44" }}
         >
-          <NavLink
-            to="/"
-            className="flex items-center gap-3 px-2 py-2"
-            onClick={closeMobileSidebar}
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-b from-[#44a83e] to-[#257620] shadow-[0_10px_30px_rgba(70,95,255,0.25)] shrink-0">
+          <NavLink to="/" className="flex items-center gap-3 px-2 py-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#44a83e]">
               <BookUser className="h-5 w-5 text-white" />
             </div>
             {isExpanded && (
@@ -221,18 +236,12 @@ export default function Sidebar() {
             )}
           </NavLink>
 
-          <button
-            onClick={closeMobileSidebar}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-white lg:hidden hover:bg-white/10"
-            aria-label="Close Sidebar"
-          >
-            <X className="h-5 w-5" />
+          <button onClick={closeMobileSidebar} className="lg:hidden text-white">
+            <X />
           </button>
         </div>
 
-        <hr className="border-slate-300 dark:border-[#162033]" />
-
-        {/* Navigation */}
+        {/* NAV */}
         <nav className="flex-1 overflow-y-auto px-4 py-6">
           <ul className="space-y-1">
             {sidebarItems.map((item) => {

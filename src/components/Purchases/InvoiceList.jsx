@@ -85,7 +85,7 @@ function InvoiceViewModal({ invoice, onClose }) {
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={handlePrint}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", backgroundColor: "#44a83e", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-              <Download size={13} /> Print / Save PDF
+              <Download size={13} /> Print PDF
             </button>
             <button onClick={onClose}
               style={{ width: 34, height: 34, borderRadius: 8, border: "none", backgroundColor: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>

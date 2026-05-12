@@ -1,16 +1,70 @@
-# React + Vite
+# ERP System (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 📌 Overview
 
-Currently, two official plugins are available:
+This project is a part of an **ERP (Enterprise Resource Planning) system** developed during my internship. The frontend is built using **React**, with **Zustand** for state management. The backend is powered by **PHP Laravel**, which is currently under development.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The goal of this project is to build a scalable and user-friendly interface for managing business operations such as inventory, users, and workflows.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Tech Stack
 
-## Expanding the ESLint configuration
+### Frontend
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **React.js** – Component-based UI development
+* **Zustand** – Lightweight state management
+* **Tailwind CSS** – Styling (if you're using it, keep; otherwise remove)
+
+### Backend (Handled by Team)
+
+* **PHP Laravel** – REST API development
+
+---
+
+## ✨ Features (Frontend)
+
+* 🔐 Authentication UI (Login / Signup)
+* 📊 Dashboard UI
+* 📦 Inventory / Product Management UI
+* 🧾 Forms for data entry
+* 🔄 State management using Zustand
+* 📡 API integration (in progress)
+* 📱 Responsive design
+
+---
+
+
+## 🔄 State Management (Zustand)
+
+Zustand is used to manage global state efficiently without the complexity of Redux. It helps in:
+
+* Sharing data across components
+* Managing UI state
+* Keeping code simple and scalable
+
+---
+
+## 🔗 API Integration
+
+The frontend communicates with a Laravel backend via REST APIs.
+Currently:
+
+* Some endpoints are integrated
+* Full integration is in progress
+
+---
+
+## 🛠️ Current Status
+
+* ✅ UI development in progress
+* ⏳ Backend integration ongoing
+
+---
+
+
+
+
+## 📄 License
+
+This project is under Business Samadhan and all Rights belong to them.
