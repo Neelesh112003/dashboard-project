@@ -35,8 +35,6 @@ export default function ManageBanks() {
   /* =========================================================
      STATE
   ========================================================= */
-  //loading state
-  const [loading, setLoading] = useState(false);
   // Show / hide form
   const [showForm, setShowForm] = useState(false);
 
@@ -67,23 +65,17 @@ export default function ManageBanks() {
      API INTEGRATION
   ========================================================= */
 
-const fetchBanks = async () => {
-  try {
-    setLoading(true);
+  const fetchBanks = async () => {
+    try {
+      const response = await api.get("/v1/banks/list");
 
-    const response = await api.get("/v1/banks/list");
+      console.log("response from the server fetchBanks", response.data);
 
-    console.log(response.data);
-
-    setBanks(
-      response.data.data.data || []
-    );
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
-  }
-};
+      setBanks(response.data.data.data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   /* =========================================================
      HANDLE INPUT CHANGE
@@ -131,7 +123,7 @@ const fetchBanks = async () => {
       };
 
       console.log("data sent to server");
-      console.log(payload)
+      console.log(payload);
       const response = await api.post("/v1/banks/create", payload);
       console.log(response);
 
@@ -141,7 +133,7 @@ const fetchBanks = async () => {
 
       resetForm();
     } catch (error) {
-       console.error(error);
+      console.error(error);
 
       alert(error.response?.data?.message || "Something went wrong");
     }
@@ -161,9 +153,9 @@ const fetchBanks = async () => {
   ========================================================= */
   const deleteBank = async (id) => {
     try {
-      console.log(id)
-     const response =  await api.delete(`/v1/banks/delete/${id}`);
-console.log("deleted bank with id ",id,response)
+      console.log(id);
+      const response = await api.delete(`/v1/banks/delete/${id}`);
+      console.log("deleted bank with id ", id, response);
       fetchBanks();
     } catch (error) {
       console.error(error);
@@ -605,8 +597,8 @@ console.log("deleted bank with id ",id,response)
                           {/* DELETE BUTTON */}
                           <button
                             onClick={() => {
-                              deleteBank(bank.bank_id)}
-                            }
+                              deleteBank(bank.bank_id);
+                            }}
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />

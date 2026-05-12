@@ -43,8 +43,7 @@ export default function CashBook() {
   const [filters, setFilters] = useState({
     type: "",
   });
-  //LOading state
-  const [loading, setLoading] = useState(false);
+
   // Form data
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -58,23 +57,17 @@ export default function CashBook() {
   ========================================================= */
   const fetchCashBook = async () => {
     try {
-      setLoading(true);
-
       const response = await api.get("/v1/cashbook/list");
 
-      console.log(response.data);
+      console.log("response from the server fetchCashBook", response);
 
       // adjust according to backend response
-      setTransactions(
-       response.data.data.data || []
-      );
+      setTransactions(response.data.data.data || []);
     } catch (error) {
       console.error(error);
 
       alert(error.response?.data?.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
+    } 
   };
   /* =========================================================
      HANDLE INPUT CHANGE
@@ -103,7 +96,10 @@ export default function CashBook() {
 
       const response = await api.post("/v1/cashbook/create", payload);
 
-      console.log("response from the server after creating cash trasaction",response.data);
+      console.log(
+        "response from the server after creating cash trasaction",
+        response.data,
+      );
 
       // reload latest data
       fetchCashBook();
@@ -145,10 +141,10 @@ export default function CashBook() {
   /* =========================================================
      DELETE TRANSACTION
   ========================================================= */
-  const deleteTransaction = async (tr_no) => {
+  const deleteTransaction = async (id) => {
     try {
-      await api.delete(`/v1/cashbook/delete/${tr_no}`);
-
+      const response = await api.delete(`/v1/cashbook/delete/${id}`);
+      console.log("cash transaction deleted with id ", id, response);
       fetchCashBook();
     } catch (error) {
       console.error(error);
@@ -311,6 +307,7 @@ export default function CashBook() {
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
+                    onClick={(e) => e.target.showPicker()}
                     className={inputClass}
                   />
                 </InputField>
@@ -382,7 +379,6 @@ export default function CashBook() {
             </form>
           </div>
         )}
-        {loading && <div className="p-6 text-center">Loading...</div>}
         {/* =====================================================
             TABLE SECTION
         ====================================================== */}

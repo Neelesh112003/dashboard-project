@@ -20,8 +20,6 @@ import {
 const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
-
-
   // Is the "Add Transaction" form open or closed?
   const [showForm, setShowForm] = useState(false);
 
@@ -33,14 +31,15 @@ export default function BankBook() {
   const [error, setError] = useState("");
 
   // List of available banks
-const [bankOptions, setBankOptions] = useState([]);
+  const [bankOptions, setBankOptions] = useState([]);
+
   // What the user is typing in the form right now
   const [formValues, setFormValues] = useState({
     date: "",
     particular: "",
     amount: "",
-    bank_id: 1,
-    bank_name: "SBI",
+    bank_id: bankOptions[0]?.bank_id || "",
+    bank_name: bankOptions[0]?.bank_name || "",
     type: "entry",
   });
 
@@ -58,28 +57,27 @@ const [bankOptions, setBankOptions] = useState([]);
 
   // Read the "?bank=SBI" value from the URL (if any)
   // This lets other pages link directly to a specific bank's transactions
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const bankFromUrl = searchParams.get("bank");
 
   // ── FORM HANDLERS ──────────────────────────────────────────────────────────
 
-//fetching banks name from the backend
-const fetchBanks = async () => {
-  try {
-    setLoading(true);
+  //fetching banks name from the backend
+  const fetchBanks = async () => {
+    try {
+      setLoading(true);
 
-    const response = await api.get("/v1/banks/list");
-//
-    console.log("banks data",response.data);
+      const response = await api.get("/v1/banks/list");
+      //
+      console.log("banks data fetchBanks", response.data);
 
-    setBankOptions(response.data.data.data || []);
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setBankOptions(response.data.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   //calling api and handling response and errors
 
@@ -89,7 +87,7 @@ const fetchBanks = async () => {
       setError("");
 
       const response = await api.get("/v1/bankbook/list");
-      console.log("response from the server ", response.data);
+      console.log("response from the server fetchBankBook ", response.data);
       // assuming backend sends:
       // { data: [...] }
 
@@ -117,14 +115,14 @@ const fetchBanks = async () => {
       alert("Please fill all fields");
       return;
     }
-console.log(formValues)
+    console.log(formValues);
     try {
-     const response =  await api.post("/v1/bankbook/create", formValues, {
+      const response = await api.post("/v1/bankbook/create", formValues, {
         headers: {
           "Content-Type": "application/json",
         },
       });
-      console.log("data sent to server",response);
+      console.log("data sent to server", response);
       // add newly created item
       await fetchBankBook();
 
@@ -134,8 +132,8 @@ console.log(formValues)
         date: "",
         particular: "",
         amount: "",
-       bank_id: bankOptions[0]?.bank_id || "",
-bank_name: bankOptions[0]?.bank_name || "",
+        bank_id: bankOptions[0]?.bank_id || "",
+        bank_name: bankOptions[0]?.bank_name || "",
         type: "entry",
       });
     } catch (err) {
@@ -210,24 +208,10 @@ bank_name: bankOptions[0]?.bank_name || "",
   // Start with the full list
   let visibleTransactions = transactionList;
 
-  // If the URL has ?bank=SBI, only show transactions for that bank
-  if (bankFromUrl) {
-    visibleTransactions = visibleTransactions.filter(
-      (t) => t.bank === bankFromUrl,
-    );
-  }
-
   // If a bank filter is selected in the dropdown, apply it
   if (filterBank !== "") {
     visibleTransactions = visibleTransactions.filter(
-      (t) => t.bank === filterBank,
-    );
-  }
-
-  // If a type filter is selected in the dropdown, apply it
-  if (filterType !== "") {
-    visibleTransactions = visibleTransactions.filter(
-      (t) => t.type === filterType,
+      (t) => t.bank_name === filterBank,
     );
   }
 
@@ -245,6 +229,7 @@ bank_name: bankOptions[0]?.bank_name || "",
   const totalPages = Math.ceil(visibleTransactions.length / ROWS_PER_PAGE);
 
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+
   const rowsOnThisPage = visibleTransactions.slice(
     startIndex,
     startIndex + ROWS_PER_PAGE,
@@ -264,6 +249,12 @@ bank_name: bankOptions[0]?.bank_name || "",
     fetchBankBook();
     fetchBanks();
   }, []);
+  
+  useEffect(() => {
+    if (bankFromUrl) {
+      setFilterBank(bankFromUrl);
+    }
+  }, [bankFromUrl]);
 
   return (
     <>
@@ -276,8 +267,8 @@ bank_name: bankOptions[0]?.bank_name || "",
             setFormValues((prev) => ({
               ...prev,
               date: new Date().toISOString().split("T")[0],
-             bank_id: bankOptions[0]?.bank_id || "",
-bank_name: bankOptions[0]?.bank_name || "",
+              bank_id: bankOptions[0]?.bank_id || "",
+              bank_name: bankOptions[0]?.bank_name || "",
             }));
           }}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
@@ -388,23 +379,23 @@ bank_name: bankOptions[0]?.bank_name || "",
                       name="bank_id"
                       value={formValues.bank_id}
                       onChange={(e) => {
-  const selectedBank = bankOptions.find(
-    (bank) => bank.bank_id === Number(e.target.value),
-  );
+                        const selectedBank = bankOptions.find(
+                          (bank) => bank.bank_id === Number(e.target.value),
+                        );
 
-  setFormValues((prev) => ({
-    ...prev,
-    bank_id: selectedBank.bank_id,
-    bank_name: selectedBank.bank_name,
-  }));
-}}
+                        setFormValues((prev) => ({
+                          ...prev,
+                          bank_id: selectedBank.bank_id,
+                          bank_name: selectedBank.bank_name,
+                        }));
+                      }}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     >
-                     {bankOptions.map((bank) => (
-  <option key={bank.bank_id} value={bank.bank_id}>
-    {bank.bank_name}
-  </option>
-))}
+                      {bankOptions.map((bank) => (
+                        <option key={bank.bank_id} value={bank.bank_id}>
+                          {bank.bank_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -486,7 +477,7 @@ bank_name: bankOptions[0]?.bank_name || "",
                     { label: "Date", key: "date" },
                     { label: "Particular", key: "particular" },
                     { label: "Amount", key: "amount" },
-                    { label: "Bank", key: "bank" },
+                    { label: "Bank", key: "bank_name" },
                     { label: "Type", key: "type" },
                   ]}
                   data={visibleTransactions}
@@ -506,13 +497,22 @@ bank_name: bankOptions[0]?.bank_name || "",
             <select
               value={filterBank}
               onChange={(e) => {
-                setFilterBank(e.target.value);
-                setCurrentPage(1); // reset to page 1 when filter changes
+                const value = e.target.value;
+
+                setFilterBank(value);
+
+                if (value) {
+                  setSearchParams({ bank: value });
+                } else {
+                  setSearchParams({});
+                }
+
+                setCurrentPage(1);
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
             >
               <option value="">All bank</option>
-              {getUniqueValues("bank").map((bank) => (
+              {getUniqueValues("bank_name").map((bank) => (
                 <option key={bank}>{bank}</option>
               ))}
             </select>
@@ -586,7 +586,7 @@ bank_name: bankOptions[0]?.bank_name || "",
                       <td className="px-6 py-4">{row.date}</td>
                       <td className="px-6 py-4">{row.particular}</td>
                       <td className="px-6 py-4">{row.amount}</td>
-                      <td className="px-6 py-4">{row.bank}</td>
+                      <td className="px-6 py-4">{row.bank_name}</td>
                       <td className="px-6 py-4">{row.type}</td>
                       <td className="px-6 py-4">
                         {/* Remove this transaction */}
