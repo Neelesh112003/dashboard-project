@@ -14,9 +14,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Pencil,
 } from "lucide-react";
-
 import ExportTable from "../ExportTable";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 
 /* =========================================================
    CONSTANTS
@@ -35,11 +36,16 @@ export default function ManageBanks() {
   /* =========================================================
      STATE
   ========================================================= */
-  //loading state
-  const [loading, setLoading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    id: null,
+    name: "",
+  });
   // Show / hide form
   const [showForm, setShowForm] = useState(false);
 
+  // Which bank is being edited
+  const [editingId, setEditingId] = useState(null);
   // Store all bank records
   const [banks, setBanks] = useState([]);
 
@@ -67,23 +73,17 @@ export default function ManageBanks() {
      API INTEGRATION
   ========================================================= */
 
-const fetchBanks = async () => {
-  try {
-    setLoading(true);
+  const fetchBanks = async () => {
+    try {
+      const response = await api.get("/v1/banks/list");
 
-    const response = await api.get("/v1/banks/list");
+      console.log("response from the server fetchBanks", response.data);
 
-    console.log(response.data);
-
-    setBanks(
-      response.data.data.data || []
-    );
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoading(false);
-  }
-};
+      setBanks(response.data.data.data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   /* =========================================================
      HANDLE INPUT CHANGE
@@ -109,8 +109,66 @@ const fetchBanks = async () => {
       branch: "",
       branchAddress: "",
     });
+
+    setEditingId(null);
   };
 
+  /* =========================================================
+   UPDATE BANK
+========================================================= */
+  const updateBank = async (id, bankData) => {
+    try {
+      const payload = {
+        bank_name: bankData.name,
+
+        ifsc_code: bankData.ifsc,
+
+        account_type: bankData.accountType,
+
+        account_number: bankData.accountNumber,
+
+        branch: bankData.branch,
+
+        branch_address: bankData.branchAddress,
+      };
+
+      console.log("updated data sent to server");
+      console.log(payload);
+
+      const response = await api.put(`/v1/banks/update/${id}`, payload);
+
+      console.log("update banks response", response);
+
+      fetchBanks();
+
+      setShowForm(false);
+
+      setEditingId(null);
+
+      resetForm();
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
+  };
+  /* =========================================================
+   EDIT BANK
+========================================================= */
+  const editBank = (bank) => {
+    setFormData({
+      name: bank.bank_name,
+      ifsc: bank.ifsc_code,
+      accountType: bank.account_type,
+      accountNumber: bank.account_number,
+      branch: bank.branch,
+      branchAddress: bank.branch_address,
+    });
+
+    setEditingId(bank.bank_id);
+
+    setShowForm(true);
+  };
   /* =========================================================
      ADD BANK
   ========================================================= */
@@ -131,7 +189,7 @@ const fetchBanks = async () => {
       };
 
       console.log("data sent to server");
-      console.log(payload)
+      console.log(payload);
       const response = await api.post("/v1/banks/create", payload);
       console.log(response);
 
@@ -141,7 +199,7 @@ const fetchBanks = async () => {
 
       resetForm();
     } catch (error) {
-       console.error(error);
+      console.error(error);
 
       alert(error.response?.data?.message || "Something went wrong");
     }
@@ -150,10 +208,18 @@ const fetchBanks = async () => {
   /* =========================================================
      FORM SUBMIT
   ========================================================= */
+  /* =========================================================
+   FORM SUBMIT
+========================================================= */
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    addBank(formData);
+    // EDIT MODE
+    if (editingId) {
+      updateBank(editingId, formData);
+    } else {
+      addBank(formData);
+    }
   };
 
   /* =========================================================
@@ -161,8 +227,9 @@ const fetchBanks = async () => {
   ========================================================= */
   const deleteBank = async (id) => {
     try {
-      await api.delete(`/v1/banks/delete/${id}`);
-
+      console.log(id);
+      const response = await api.delete(`/v1/banks/delete/${id}`);
+      console.log("deleted bank with id ", id, response);
       fetchBanks();
     } catch (error) {
       console.error(error);
@@ -258,7 +325,7 @@ const fetchBanks = async () => {
       {/* =====================================================
           TOP BUTTON
       ====================================================== */}
-      <div className="mb-5 flex gap-3">
+      <div className="mb-5 flex gap-3 dark:text-white">
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
@@ -268,7 +335,7 @@ const fetchBanks = async () => {
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 dark:text-white">
         {/* =====================================================
             FORM SECTION
         ====================================================== */}
@@ -416,8 +483,17 @@ const fetchBanks = async () => {
                   type="submit"
                   className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437]"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create
+                  {editingId ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -578,7 +654,17 @@ const fetchBanks = async () => {
 
                       <td className="px-6 py-4">{bank.ifsc_code}</td>
 
-                      <td className="px-6 py-4">{bank.account_type}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium ${
+                            bank.account_type === "Current"
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                              : "bg-blue-50 text-blue-600 border border-blue-200"
+                          }`}
+                        >
+                          {bank.account_type}
+                        </span>
+                      </td>
 
                       <td className="px-6 py-4">{bank.account_number}</td>
                       <td className="px-6 py-4">{bank.branch}</td>
@@ -601,9 +687,24 @@ const fetchBanks = async () => {
                             View
                           </button>
 
+                          {/* EDIT BUTTON */}
+                          <button
+                            onClick={() => editBank(bank)}
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+
                           {/* DELETE BUTTON */}
                           <button
-                            onClick={() => deleteBank(bank.bank_id)}
+                            onClick={() =>
+                              setDeleteModal({
+                                open: true,
+                                id: bank.bank_id,
+                                name: bank.bank_name,
+                              })
+                            }
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -645,6 +746,27 @@ const fetchBanks = async () => {
           )}
         </div>
       </div>
+      <DeleteConfirmModal
+        isOpen={deleteModal.open}
+        title="Delete Bank"
+        message={`Are you sure you want to delete "${deleteModal.name}" ?`}
+        onClose={() =>
+          setDeleteModal({
+            open: false,
+            id: null,
+            name: "",
+          })
+        }
+        onConfirm={async () => {
+          await deleteBank(deleteModal.id);
+
+          setDeleteModal({
+            open: false,
+            id: null,
+            name: "",
+          });
+        }}
+      />
     </>
   );
 }

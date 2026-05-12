@@ -10,9 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Pencil,
 } from "lucide-react";
 import api from "../../api/axios";
 import ExportTable from "../ExportTable";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 
 /* =========================================================
    CONSTANTS
@@ -23,12 +25,24 @@ const ITEMS_PER_PAGE = 10;
    MAIN COMPONENT
 ========================================================= */
 export default function CashBook() {
+
   /* =========================================================
      STATE
   ========================================================= */
 
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [deleteData, setDeleteData] = useState({
+    id: null,
+    title: "",
+  });
+
   // Show / hide transaction form
   const [showForm, setShowForm] = useState(false);
+  
+  // Edit mode
+  const [editingId, setEditingId] = useState(null);
 
   // All transactions
   const [transactions, setTransactions] = useState([]);
@@ -42,9 +56,10 @@ export default function CashBook() {
   // Filter values
   const [filters, setFilters] = useState({
     type: "",
+    fromDate: "",
+    toDate: "",
   });
-  //LOading state
-  const [loading, setLoading] = useState(false);
+
   // Form data
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -58,24 +73,19 @@ export default function CashBook() {
   ========================================================= */
   const fetchCashBook = async () => {
     try {
-      setLoading(true);
-
       const response = await api.get("/v1/cashbook/list");
 
-      console.log(response.data);
+      console.log("response from the server fetchCashBook", response);
 
       // adjust according to backend response
-      setTransactions(
-       response.data.data.data || []
-      );
+      setTransactions(response.data.data.data || []);
     } catch (error) {
       console.error(error);
 
       alert(error.response?.data?.message || "Something went wrong");
-    } finally {
-      setLoading(false);
     }
   };
+
   /* =========================================================
      HANDLE INPUT CHANGE
   ========================================================= */
@@ -103,7 +113,10 @@ export default function CashBook() {
 
       const response = await api.post("/v1/cashbook/create", payload);
 
-      console.log("response from the server after creating cash trasaction",response.data);
+      console.log(
+        "response from the server after creating cash trasaction",
+        response.data,
+      );
 
       // reload latest data
       fetchCashBook();
@@ -117,6 +130,50 @@ export default function CashBook() {
     }
   };
   /* =========================================================
+   UPDATE TRANSACTION
+========================================================= */
+  const updateTransaction = async (id, transactionData) => {
+    try {
+      const payload = {
+        date: transactionData.date,
+        particular: transactionData.particular,
+        amount: transactionData.amount,
+        type: transactionData.type,
+      };
+      console.log(id);
+      const response = await api.put(`/v1/cashbook/update/${id}`, payload);
+
+      console.log("updated transaction", response.data);
+
+      fetchCashBook();
+
+      resetForm();
+
+      setEditingId(null);
+
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
+  };
+  /* =========================================================
+   EDIT TRANSACTION
+========================================================= */
+  const editTransaction = (id, transaction) => {
+    setFormData({
+      date: transaction.date,
+      particular: transaction.particular,
+      amount: transaction.amount,
+      type: transaction.type,
+    });
+
+    setEditingId(id);
+
+    setShowForm(true);
+  };
+  /* =========================================================
      RESET FORM
   ========================================================= */
   const resetForm = () => {
@@ -126,11 +183,13 @@ export default function CashBook() {
       amount: "",
       type: "entry",
     });
+
+    setEditingId(null);
   };
 
   /* =========================================================
-     FORM SUBMIT
-  ========================================================= */
+   FORM SUBMIT
+========================================================= */
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -139,16 +198,21 @@ export default function CashBook() {
       return;
     }
 
-    addTransaction(formData);
+    // EDIT MODE
+    if (editingId) {
+      updateTransaction(editingId, formData);
+    } else {
+      addTransaction(formData);
+    }
   };
 
   /* =========================================================
      DELETE TRANSACTION
   ========================================================= */
-  const deleteTransaction = async (tr_no) => {
+  const deleteTransaction = async (id) => {
     try {
-      await api.delete(`/v1/cashbook/delete/${tr_no}`);
-
+      const response = await api.delete(`/v1/cashbook/delete/${id}`);
+      console.log("cash transaction deleted with id ", id, response);
       fetchCashBook();
     } catch (error) {
       console.error(error);
@@ -201,15 +265,32 @@ export default function CashBook() {
   ========================================================= */
   const filteredTransactions = transactions
     .filter((transaction) => {
-      // Filter by type
+      // TYPE FILTER
       if (filters.type && transaction.type !== filters.type) {
+        return false;
+      }
+
+      // FROM DATE FILTER
+      if (
+        filters.fromDate &&
+        new Date(transaction.date) < new Date(filters.fromDate)
+      ) {
+        return false;
+      }
+
+      // TO DATE FILTER
+      if (
+        filters.toDate &&
+        new Date(transaction.date) > new Date(filters.toDate)
+      ) {
         return false;
       }
 
       return true;
     })
+
+    // SEARCH FILTER
     .filter((transaction) => {
-      // Search filter
       if (!searchText) return true;
 
       return Object.values(transaction).some((value) =>
@@ -245,7 +326,7 @@ export default function CashBook() {
       {/* =====================================================
           TOP BUTTON
       ====================================================== */}
-      <div className="mb-5 flex gap-3">
+      <div className="mb-5 flex gap-3 dark:text-white">
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
@@ -255,7 +336,7 @@ export default function CashBook() {
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 dark:text-white">
         {/* =====================================================
             FORM SECTION
         ====================================================== */}
@@ -311,6 +392,7 @@ export default function CashBook() {
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
+                    onClick={(e) => e.target.showPicker()}
                     className={inputClass}
                   />
                 </InputField>
@@ -375,14 +457,22 @@ export default function CashBook() {
                   type="submit"
                   className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437]"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create
+                  {editingId ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
                 </button>
               </div>
             </form>
           </div>
         )}
-        {loading && <div className="p-6 text-center">Loading...</div>}
         {/* =====================================================
             TABLE SECTION
         ====================================================== */}
@@ -460,7 +550,49 @@ export default function CashBook() {
               <Filter className="h-3.5 w-3.5" />
               Filter
             </div>
+            {/* FROM DATE */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                From
+              </label>
 
+              <input
+                type="date"
+                value={filters.fromDate}
+                onChange={(e) => {
+                  setFilters({
+                    ...filters,
+                    fromDate: e.target.value,
+                  });
+
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
+
+            {/* TO DATE */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                To
+              </label>
+
+              <input
+                type="date"
+                value={filters.toDate}
+                onChange={(e) => {
+                  setFilters({
+                    ...filters,
+                    toDate: e.target.value,
+                  });
+
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
             <select
               value={filters.type}
               onChange={(e) => {
@@ -526,16 +658,47 @@ export default function CashBook() {
 
                       <td className="px-6 py-4">{transaction.amount}</td>
 
-                      <td className="px-6 py-4">{transaction.type}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                            transaction.type === "entry"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              : "border-rose-200 bg-rose-50 text-rose-600"
+                          }`}
+                        >
+                          {transaction.type}
+                        </span>
+                      </td>
 
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => deleteTransaction(transaction.tr_no)}
-                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {/* EDIT */}
+                          <button
+                            onClick={() =>
+                              editTransaction(transaction.sn, transaction)
+                            }
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            onClick={() => {
+                              setDeleteData({
+                                id: transaction.tr_no,
+                                title: `${transaction.date} - ${transaction.particular}`,
+                              });
+
+                              setShowDeleteModal(true);
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -571,6 +734,28 @@ export default function CashBook() {
           )}
         </div>
       </div>
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        title={deleteData.title}
+        onClose={() => {
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+        onConfirm={async () => {
+          await deleteTransaction(deleteData.id);
+
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+      />
     </>
   );
 }

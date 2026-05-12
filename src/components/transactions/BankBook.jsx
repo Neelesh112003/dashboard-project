@@ -14,38 +14,42 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Pencil,
 } from "lucide-react";
-
+import DeleteConfirmModal from "../DeleteConfirmModal";
 // How many rows to show per page
 const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
+  // Date filters
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [deleteData, setDeleteData] = useState({
+    id: null,
+    title: "",
+  });
   // Is the "Add Transaction" form open or closed?
   const [showForm, setShowForm] = useState(false);
-
+  // Which transaction is being edited
+  const [editingId, setEditingId] = useState(null);
   // All saved transactions
   const [transactionList, setTransactionList] = useState([]);
 
   //loading and error state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   // List of available banks
-  const [bankOptions] = useState([
-    { id: 1, name: "SBI" },
-    { id: 2, name: "HDFC" },
-    { id: 3, name: "UNION" },
-    { id: 4, name: "ICICI" },
-    { id: 5, name: "PUNJAB" },
-  ]);
+  const [bankOptions, setBankOptions] = useState([]);
 
   // What the user is typing in the form right now
   const [formValues, setFormValues] = useState({
     date: "",
     particular: "",
     amount: "",
-    bank_id: 1,
-    bank_name: "SBI",
+    bank_id: bankOptions[0]?.bank_id || "",
+    bank_name: bankOptions[0]?.bank_name || "",
     type: "entry",
   });
 
@@ -63,29 +67,85 @@ export default function BankBook() {
 
   // Read the "?bank=SBI" value from the URL (if any)
   // This lets other pages link directly to a specific bank's transactions
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const bankFromUrl = searchParams.get("bank");
 
   // ── FORM HANDLERS ──────────────────────────────────────────────────────────
+  /* =========================================================
+   UPDATE TRANSACTION
+========================================================= */
+  async function updateTransaction(id) {
+    try {
+      const response = await api.put(`/v1/bankbook/update/${id}`, formValues, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("updated transaction", response.data);
+
+      await fetchBankBook();
+
+      setShowForm(false);
+
+      setEditingId(null);
+
+      setFormValues({
+        date: "",
+        particular: "",
+        amount: "",
+        bank_id: bankOptions[0]?.bank_id || "",
+        bank_name: bankOptions[0]?.bank_name || "",
+        type: "entry",
+      });
+    } catch (err) {
+      console.error(err);
+
+      alert(err.response?.data?.message || "Failed to update transaction");
+    }
+  }
+  /* =========================================================
+   EDIT TRANSACTION
+========================================================= */
+  function handleEdit(row) {
+    setFormValues({
+      date: row.date,
+      particular: row.particular,
+      amount: row.amount,
+      bank_id: row.bank_id,
+      bank_name: row.bank_name,
+      type: row.type,
+    });
+
+    setEditingId(row.tr_no);
+
+    setShowForm(true);
+  }
+  //fetching banks name from the backend
+  const fetchBanks = async () => {
+    try {
+      const response = await api.get("/v1/banks/list");
+      //
+      console.log("banks data fetchBanks", response.data);
+
+      setBankOptions(response.data.data.data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   //calling api and handling response and errors
 
   async function fetchBankBook() {
     try {
-      setLoading(true);
-      setError("");
-
       const response = await api.get("/v1/bankbook/list");
-      console.log("response from the server ", response.data);
+      console.log("response from the server fetchBankBook ", response.data);
       // assuming backend sends:
       // { data: [...] }
 
-      setTransactionList( response.data.data.data || []);
+      setTransactionList(response.data.data.data || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to load bank book");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -100,19 +160,28 @@ export default function BankBook() {
   // When the user clicks "Create", add the new transaction to the list
   async function handleSubmit(e) {
     e.preventDefault();
+
     if (!formValues.date || !formValues.particular || !formValues.amount) {
       alert("Please fill all fields");
       return;
     }
 
+    // EDIT MODE
+    if (editingId) {
+      await updateTransaction(editingId);
+      return;
+    }
+
+    // CREATE MODE
     try {
-      await api.post("/v1/bankbook/create", formValues, {
+      const response = await api.post("/v1/bankbook/create", formValues, {
         headers: {
           "Content-Type": "application/json",
         },
       });
-      console.log("data sent to server");
-      // add newly created item
+
+      console.log("data sent to server", response);
+
       await fetchBankBook();
 
       setShowForm(false);
@@ -121,15 +190,12 @@ export default function BankBook() {
         date: "",
         particular: "",
         amount: "",
-        bank_id: 1,
-        bank_name: "SBI",
+        bank_id: bankOptions[0]?.bank_id || "",
+        bank_name: bankOptions[0]?.bank_name || "",
         type: "entry",
       });
     } catch (err) {
       console.error(err);
-
-      console.log(err.response);
-      console.log(err.response?.data);
 
       alert(err.response?.data?.message || "Failed to create transaction");
     }
@@ -138,8 +204,9 @@ export default function BankBook() {
   // When the user clicks "Delete", remove that transaction from the list
   async function handleDelete(id) {
     try {
-      await api.delete(`/v1/bankbook/delete/${id}`);
-
+      const response = await api.delete(`/v1/bankbook/delete/${id}`);
+      console.log(`row deleted with id : ${id}`);
+      console.log(response);
       await fetchBankBook();
     } catch (err) {
       console.error(err);
@@ -193,31 +260,38 @@ export default function BankBook() {
 
   // ── FILTERING & SEARCHING ──────────────────────────────────────────────────
 
-  // Start with the full list
+  // Start with full list
   let visibleTransactions = transactionList;
 
-  // If the URL has ?bank=SBI, only show transactions for that bank
-  if (bankFromUrl) {
-    visibleTransactions = visibleTransactions.filter(
-      (t) => t.bank === bankFromUrl,
-    );
-  }
-
-  // If a bank filter is selected in the dropdown, apply it
+  // Filter by bank
   if (filterBank !== "") {
     visibleTransactions = visibleTransactions.filter(
-      (t) => t.bank === filterBank,
+      (t) => t.bank_name === filterBank,
     );
   }
 
-  // If a type filter is selected in the dropdown, apply it
+  // Filter by type
   if (filterType !== "") {
     visibleTransactions = visibleTransactions.filter(
       (t) => t.type === filterType,
     );
   }
 
-  // If the user typed something in search, keep only rows where any field matches
+  // Filter by FROM date
+  if (fromDate !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => new Date(t.date) >= new Date(fromDate),
+    );
+  }
+
+  // Filter by TO date
+  if (toDate !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => new Date(t.date) <= new Date(toDate),
+    );
+  }
+
+  // Search filter
   if (searchText !== "") {
     visibleTransactions = visibleTransactions.filter((t) => {
       return Object.values(t).some((value) =>
@@ -231,6 +305,7 @@ export default function BankBook() {
   const totalPages = Math.ceil(visibleTransactions.length / ROWS_PER_PAGE);
 
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+
   const rowsOnThisPage = visibleTransactions.slice(
     startIndex,
     startIndex + ROWS_PER_PAGE,
@@ -248,12 +323,19 @@ export default function BankBook() {
   //caling the api function to retrieve data
   useEffect(() => {
     fetchBankBook();
+    fetchBanks();
   }, []);
+
+  useEffect(() => {
+    if (bankFromUrl) {
+      setFilterBank(bankFromUrl);
+    }
+  }, [bankFromUrl]);
 
   return (
     <>
       {/* Add Transaction button */}
-      <div className="mb-5 flex gap-3">
+      <div className="mb-5 flex gap-3 dark:text-white">
         <button
           onClick={() => {
             setShowForm(true);
@@ -261,8 +343,8 @@ export default function BankBook() {
             setFormValues((prev) => ({
               ...prev,
               date: new Date().toISOString().split("T")[0],
-              bank_id: 1,
-              bank_name: "SBI",
+              bank_id: bankOptions[0]?.bank_id || "",
+              bank_name: bankOptions[0]?.bank_name || "",
             }));
           }}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
@@ -272,7 +354,7 @@ export default function BankBook() {
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 dark:text-white">
         {/* ── ADD TRANSACTION FORM (only shown when showForm is true) ── */}
         {showForm && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
@@ -374,20 +456,20 @@ export default function BankBook() {
                       value={formValues.bank_id}
                       onChange={(e) => {
                         const selectedBank = bankOptions.find(
-                          (bank) => bank.id === Number(e.target.value),
+                          (bank) => bank.bank_id === Number(e.target.value),
                         );
 
                         setFormValues((prev) => ({
                           ...prev,
-                          bank_id: selectedBank.id,
-                          bank_name: selectedBank.name,
+                          bank_id: selectedBank.bank_id,
+                          bank_name: selectedBank.bank_name,
                         }));
                       }}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     >
                       {bankOptions.map((bank) => (
-                        <option key={bank.id} value={bank.id}>
-                          {bank.name}
+                        <option key={bank.bank_id} value={bank.bank_id}>
+                          {bank.bank_name}
                         </option>
                       ))}
                     </select>
@@ -408,7 +490,7 @@ export default function BankBook() {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none focus:border-[#44a83e] dark:border-[#1b2740] dark:bg-[#11182b]"
                     >
                       <option value="entry">entry</option>
-                      <option value="drawing">drawing</option>
+                      <option value="drawings">drawings</option>
                     </select>
                   </div>
                 </div>
@@ -420,8 +502,17 @@ export default function BankBook() {
                   type="submit"
                   className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437]"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create
+                  {editingId ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -429,8 +520,6 @@ export default function BankBook() {
         )}
 
         {/* ── TRANSACTIONS TABLE ── */}
-        {/*showing error if api response not working */}
-        {error && <div className="p-4 text-sm text-red-500">{error}</div>}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
           {/* Table header */}
           <div
@@ -471,7 +560,7 @@ export default function BankBook() {
                     { label: "Date", key: "date" },
                     { label: "Particular", key: "particular" },
                     { label: "Amount", key: "amount" },
-                    { label: "Bank", key: "bank" },
+                    { label: "Bank", key: "bank_name" },
                     { label: "Type", key: "type" },
                   ]}
                   data={visibleTransactions}
@@ -486,18 +575,61 @@ export default function BankBook() {
               <Filter className="h-3.5 w-3.5" />
               Filter
             </div>
+            {/* From Date */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                From
+              </label>
 
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
+
+            {/* To Date */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                To
+              </label>
+
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
             {/* Filter by bank */}
             <select
               value={filterBank}
               onChange={(e) => {
-                setFilterBank(e.target.value);
-                setCurrentPage(1); // reset to page 1 when filter changes
+                const value = e.target.value;
+
+                setFilterBank(value);
+
+                if (value) {
+                  setSearchParams({ bank: value });
+                } else {
+                  setSearchParams({});
+                }
+
+                setCurrentPage(1);
               }}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
             >
               <option value="">All bank</option>
-              {getUniqueValues("bank").map((bank) => (
+              {getUniqueValues("bank_name").map((bank) => (
                 <option key={bank}>{bank}</option>
               ))}
             </select>
@@ -543,16 +675,7 @@ export default function BankBook() {
 
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
                 {/* If no rows match, show an empty state message */}
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="py-10 text-center text-sm text-slate-400"
-                    >
-                      Loading...
-                    </td>
-                  </tr>
-                ) : rowsOnThisPage.length === 0 ? (
+                {rowsOnThisPage.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
@@ -565,23 +688,51 @@ export default function BankBook() {
                   // Otherwise render one row per transaction
                   rowsOnThisPage.map((row) => (
                     <tr
-                      key={row.id}
+                      key={row.sn}
                       className="hover:bg-slate-50 dark:hover:bg-[#11182b]"
                     >
                       <td className="px-6 py-4">{row.date}</td>
                       <td className="px-6 py-4">{row.particular}</td>
                       <td className="px-6 py-4">{row.amount}</td>
-                      <td className="px-6 py-4">{row.bank}</td>
-                      <td className="px-6 py-4">{row.type}</td>
+                      <td className="px-6 py-4">{row.bank_name}</td>
                       <td className="px-6 py-4">
-                        {/* Remove this transaction */}
-                        <button
-                          onClick={() => handleDelete(row.id)}
-                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                        <span
+                          className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                            row.type === "entry"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              : "border-rose-200 bg-rose-50 text-rose-600"
+                          }`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </button>
+                          {row.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {/* EDIT */}
+                          <button
+                            onClick={() => handleEdit(row)}
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            onClick={() => {
+                              setDeleteData({
+                                id: row.tr_no,
+                                title: `${row.date} - ${row.particular}`,
+                              });
+
+                              setShowDeleteModal(true);
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -612,6 +763,28 @@ export default function BankBook() {
           )}
         </div>
       </div>
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        title={deleteData.title}
+        onClose={() => {
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+        onConfirm={async () => {
+          await handleDelete(deleteData.id);
+
+          setShowDeleteModal(false);
+
+          setDeleteData({
+            id: null,
+            title: "",
+          });
+        }}
+      />
     </>
   );
 }
