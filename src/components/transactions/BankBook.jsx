@@ -14,21 +14,20 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Pencil,
 } from "lucide-react";
-
 // How many rows to show per page
 const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
   // Is the "Add Transaction" form open or closed?
   const [showForm, setShowForm] = useState(false);
-
+  // Which transaction is being edited
+  const [editingId, setEditingId] = useState(null);
   // All saved transactions
   const [transactionList, setTransactionList] = useState([]);
 
   //loading and error state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   // List of available banks
   const [bankOptions, setBankOptions] = useState([]);
@@ -61,11 +60,59 @@ export default function BankBook() {
   const bankFromUrl = searchParams.get("bank");
 
   // ── FORM HANDLERS ──────────────────────────────────────────────────────────
+  /* =========================================================
+   UPDATE TRANSACTION
+========================================================= */
+  async function updateTransaction(id) {
+    try {
+      const response = await api.put(`/v1/bankbook/update/${id}`, formValues, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
+      console.log("updated transaction", response.data);
+
+      await fetchBankBook();
+
+      setShowForm(false);
+
+      setEditingId(null);
+
+      setFormValues({
+        date: "",
+        particular: "",
+        amount: "",
+        bank_id: bankOptions[0]?.bank_id || "",
+        bank_name: bankOptions[0]?.bank_name || "",
+        type: "entry",
+      });
+    } catch (err) {
+      console.error(err);
+
+      alert(err.response?.data?.message || "Failed to update transaction");
+    }
+  }
+  /* =========================================================
+   EDIT TRANSACTION
+========================================================= */
+  function handleEdit(row) {
+    setFormValues({
+      date: row.date,
+      particular: row.particular,
+      amount: row.amount,
+      bank_id: row.bank_id,
+      bank_name: row.bank_name,
+      type: row.type,
+    });
+
+    setEditingId(row.tr_no);
+
+    setShowForm(true);
+  }
   //fetching banks name from the backend
   const fetchBanks = async () => {
     try {
-      setLoading(true);
 
       const response = await api.get("/v1/banks/list");
       //
@@ -74,8 +121,6 @@ export default function BankBook() {
       setBankOptions(response.data.data.data || []);
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -83,8 +128,6 @@ export default function BankBook() {
 
   async function fetchBankBook() {
     try {
-      setLoading(true);
-      setError("");
 
       const response = await api.get("/v1/bankbook/list");
       console.log("response from the server fetchBankBook ", response.data);
@@ -94,9 +137,7 @@ export default function BankBook() {
       setTransactionList(response.data.data.data || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to load bank book");
-    } finally {
-      setLoading(false);
+
     }
   }
 
@@ -111,19 +152,28 @@ export default function BankBook() {
   // When the user clicks "Create", add the new transaction to the list
   async function handleSubmit(e) {
     e.preventDefault();
+
     if (!formValues.date || !formValues.particular || !formValues.amount) {
       alert("Please fill all fields");
       return;
     }
-    console.log(formValues);
+
+    // EDIT MODE
+    if (editingId) {
+      await updateTransaction(editingId);
+      return;
+    }
+
+    // CREATE MODE
     try {
       const response = await api.post("/v1/bankbook/create", formValues, {
         headers: {
           "Content-Type": "application/json",
         },
       });
+
       console.log("data sent to server", response);
-      // add newly created item
+
       await fetchBankBook();
 
       setShowForm(false);
@@ -138,9 +188,6 @@ export default function BankBook() {
       });
     } catch (err) {
       console.error(err);
-
-      console.log(err.response);
-      console.log(err.response?.data);
 
       alert(err.response?.data?.message || "Failed to create transaction");
     }
@@ -215,6 +262,12 @@ export default function BankBook() {
     );
   }
 
+  // Filter by type
+  if (filterType !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => t.type === filterType,
+    );
+  }
   // If the user typed something in search, keep only rows where any field matches
   if (searchText !== "") {
     visibleTransactions = visibleTransactions.filter((t) => {
@@ -249,7 +302,7 @@ export default function BankBook() {
     fetchBankBook();
     fetchBanks();
   }, []);
-  
+
   useEffect(() => {
     if (bankFromUrl) {
       setFilterBank(bankFromUrl);
@@ -426,8 +479,17 @@ export default function BankBook() {
                   type="submit"
                   className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437]"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create
+                  {editingId ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -435,8 +497,6 @@ export default function BankBook() {
         )}
 
         {/* ── TRANSACTIONS TABLE ── */}
-        {/*showing error if api response not working */}
-        {error && <div className="p-4 text-sm text-red-500">{error}</div>}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
           {/* Table header */}
           <div
@@ -558,16 +618,7 @@ export default function BankBook() {
 
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
                 {/* If no rows match, show an empty state message */}
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="py-10 text-center text-sm text-slate-400"
-                    >
-                      Loading...
-                    </td>
-                  </tr>
-                ) : rowsOnThisPage.length === 0 ? (
+                {rowsOnThisPage.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
@@ -588,16 +639,29 @@ export default function BankBook() {
                       <td className="px-6 py-4">{row.amount}</td>
                       <td className="px-6 py-4">{row.bank_name}</td>
                       <td className="px-6 py-4">{row.type}</td>
-                      <td className="px-6 py-4">
-                        {/* Remove this transaction */}
-                        <button
-                          onClick={() => handleDelete(row.tr_no)}
-                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </button>
-                      </td>
+                     <td className="px-6 py-4">
+  <div className="flex items-center gap-2">
+
+    {/* EDIT */}
+    <button
+      onClick={() => handleEdit(row)}
+      className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+    >
+      <Pencil className="h-3.5 w-3.5" />
+      Edit
+    </button>
+
+    {/* DELETE */}
+    <button
+      onClick={() => handleDelete(row.tr_no)}
+      className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+      Delete
+    </button>
+
+  </div>
+</td>
                     </tr>
                   ))
                 )}

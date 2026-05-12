@@ -14,8 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Pencil,
 } from "lucide-react";
-
 import ExportTable from "../ExportTable";
 
 /* =========================================================
@@ -38,6 +38,8 @@ export default function ManageBanks() {
   // Show / hide form
   const [showForm, setShowForm] = useState(false);
 
+  // Which bank is being edited
+  const [editingId, setEditingId] = useState(null);
   // Store all bank records
   const [banks, setBanks] = useState([]);
 
@@ -101,8 +103,66 @@ export default function ManageBanks() {
       branch: "",
       branchAddress: "",
     });
+
+    setEditingId(null);
   };
 
+  /* =========================================================
+   UPDATE BANK
+========================================================= */
+  const updateBank = async (id, bankData) => {
+    try {
+      const payload = {
+        bank_name: bankData.name,
+
+        ifsc_code: bankData.ifsc,
+
+        account_type: bankData.accountType,
+
+        account_number: bankData.accountNumber,
+
+        branch: bankData.branch,
+
+        branch_address: bankData.branchAddress,
+      };
+
+      console.log("updated data sent to server");
+      console.log(payload);
+
+      const response = await api.put(`/v1/banks/update/${id}`, payload);
+
+      console.log("update banks response",response);
+
+      fetchBanks();
+
+      setShowForm(false);
+
+      setEditingId(null);
+
+      resetForm();
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
+  };
+  /* =========================================================
+   EDIT BANK
+========================================================= */
+  const editBank = (bank) => {
+    setFormData({
+      name: bank.bank_name,
+      ifsc: bank.ifsc_code,
+      accountType: bank.account_type,
+      accountNumber: bank.account_number,
+      branch: bank.branch,
+      branchAddress: bank.branch_address,
+    });
+
+    setEditingId(bank.bank_id);
+
+    setShowForm(true);
+  };
   /* =========================================================
      ADD BANK
   ========================================================= */
@@ -142,10 +202,18 @@ export default function ManageBanks() {
   /* =========================================================
      FORM SUBMIT
   ========================================================= */
+  /* =========================================================
+   FORM SUBMIT
+========================================================= */
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    addBank(formData);
+    // EDIT MODE
+    if (editingId) {
+      updateBank(editingId, formData);
+    } else {
+      addBank(formData);
+    }
   };
 
   /* =========================================================
@@ -409,8 +477,17 @@ export default function ManageBanks() {
                   type="submit"
                   className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437]"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create
+                  {editingId ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -592,6 +669,15 @@ export default function ManageBanks() {
                           >
                             <Eye className="h-3.5 w-3.5" />
                             View
+                          </button>
+
+                          {/* EDIT BUTTON */}
+                          <button
+                            onClick={() => editBank(bank)}
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
                           </button>
 
                           {/* DELETE BUTTON */}

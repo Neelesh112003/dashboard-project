@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Pencil,
 } from "lucide-react";
 import api from "../../api/axios";
 import ExportTable from "../ExportTable";
@@ -29,6 +30,9 @@ export default function CashBook() {
 
   // Show / hide transaction form
   const [showForm, setShowForm] = useState(false);
+  //state od editing
+  // Edit mode
+  const [editingId, setEditingId] = useState(null);
 
   // All transactions
   const [transactions, setTransactions] = useState([]);
@@ -67,7 +71,7 @@ export default function CashBook() {
       console.error(error);
 
       alert(error.response?.data?.message || "Something went wrong");
-    } 
+    }
   };
   /* =========================================================
      HANDLE INPUT CHANGE
@@ -113,6 +117,50 @@ export default function CashBook() {
     }
   };
   /* =========================================================
+   UPDATE TRANSACTION
+========================================================= */
+  const updateTransaction = async (id, transactionData) => {
+    try {
+      const payload = {
+        date: transactionData.date,
+        particular: transactionData.particular,
+        amount: transactionData.amount,
+        type: transactionData.type,
+      };
+console.log(id)
+      const response = await api.put(`/v1/cashbook/update/${id}`, payload);
+
+      console.log("updated transaction", response.data);
+
+      fetchCashBook();
+
+      resetForm();
+
+      setEditingId(null);
+
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+
+      alert(error.response?.data?.message || "Something went wrong");
+    }
+  };
+  /* =========================================================
+   EDIT TRANSACTION
+========================================================= */
+  const editTransaction = (id,transaction) => {
+    setFormData({
+      date: transaction.date,
+      particular: transaction.particular,
+      amount: transaction.amount,
+      type: transaction.type,
+    });
+
+    setEditingId(id);
+
+    setShowForm(true);
+  };
+  /* =========================================================
      RESET FORM
   ========================================================= */
   const resetForm = () => {
@@ -122,11 +170,13 @@ export default function CashBook() {
       amount: "",
       type: "entry",
     });
+
+    setEditingId(null);
   };
 
   /* =========================================================
-     FORM SUBMIT
-  ========================================================= */
+   FORM SUBMIT
+========================================================= */
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -135,7 +185,12 @@ export default function CashBook() {
       return;
     }
 
-    addTransaction(formData);
+    // EDIT MODE
+    if (editingId) {
+      updateTransaction(editingId, formData);
+    } else {
+      addTransaction(formData);
+    }
   };
 
   /* =========================================================
@@ -372,8 +427,17 @@ export default function CashBook() {
                   type="submit"
                   className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#3c9437]"
                 >
-                  <Plus className="h-4 w-4" />
-                  Create
+                  {editingId ? (
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Save
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Create
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -525,13 +589,25 @@ export default function CashBook() {
                       <td className="px-6 py-4">{transaction.type}</td>
 
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => deleteTransaction(transaction.tr_no)}
-                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {/* EDIT */}
+                          <button
+                            onClick={() => editTransaction(transaction.sn,transaction)}
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-500 hover:bg-blue-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            onClick={() => deleteTransaction(transaction.tr_no)}
+                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
