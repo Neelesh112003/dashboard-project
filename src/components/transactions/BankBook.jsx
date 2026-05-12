@@ -22,8 +22,8 @@ const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
   // Date filters
-const [fromDate, setFromDate] = useState("");
-const [toDate, setToDate] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -258,47 +258,47 @@ const [toDate, setToDate] = useState("");
     reader.readAsText(file);
   }
 
-// ── FILTERING & SEARCHING ──────────────────────────────────────────────────
+  // ── FILTERING & SEARCHING ──────────────────────────────────────────────────
 
-// Start with full list
-let visibleTransactions = transactionList;
+  // Start with full list
+  let visibleTransactions = transactionList;
 
-// Filter by bank
-if (filterBank !== "") {
-  visibleTransactions = visibleTransactions.filter(
-    (t) => t.bank_name === filterBank,
-  );
-}
-
-// Filter by type
-if (filterType !== "") {
-  visibleTransactions = visibleTransactions.filter(
-    (t) => t.type === filterType,
-  );
-}
-
-// Filter by FROM date
-if (fromDate !== "") {
-  visibleTransactions = visibleTransactions.filter(
-    (t) => new Date(t.date) >= new Date(fromDate),
-  );
-}
-
-// Filter by TO date
-if (toDate !== "") {
-  visibleTransactions = visibleTransactions.filter(
-    (t) => new Date(t.date) <= new Date(toDate),
-  );
-}
-
-// Search filter
-if (searchText !== "") {
-  visibleTransactions = visibleTransactions.filter((t) => {
-    return Object.values(t).some((value) =>
-      String(value).toLowerCase().includes(searchText.toLowerCase()),
+  // Filter by bank
+  if (filterBank !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => t.bank_name === filterBank,
     );
-  });
-}
+  }
+
+  // Filter by type
+  if (filterType !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => t.type === filterType,
+    );
+  }
+
+  // Filter by FROM date
+  if (fromDate !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => new Date(t.date) >= new Date(fromDate),
+    );
+  }
+
+  // Filter by TO date
+  if (toDate !== "") {
+    visibleTransactions = visibleTransactions.filter(
+      (t) => new Date(t.date) <= new Date(toDate),
+    );
+  }
+
+  // Search filter
+  if (searchText !== "") {
+    visibleTransactions = visibleTransactions.filter((t) => {
+      return Object.values(t).some((value) =>
+        String(value).toLowerCase().includes(searchText.toLowerCase()),
+      );
+    });
+  }
 
   // ── PAGINATION ─────────────────────────────────────────────────────────────
 
@@ -335,7 +335,7 @@ if (searchText !== "") {
   return (
     <>
       {/* Add Transaction button */}
-      <div className="mb-5 flex gap-3">
+      <div className="mb-5 flex gap-3 dark:text-white">
         <button
           onClick={() => {
             setShowForm(true);
@@ -354,7 +354,7 @@ if (searchText !== "") {
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 dark:text-white">
         {/* ── ADD TRANSACTION FORM (only shown when showForm is true) ── */}
         {showForm && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
@@ -575,41 +575,41 @@ if (searchText !== "") {
               <Filter className="h-3.5 w-3.5" />
               Filter
             </div>
-{/* From Date */}
-<div className="flex items-center gap-2">
-  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-    From
-  </label>
+            {/* From Date */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                From
+              </label>
 
-  <input
-    type="date"
-    value={fromDate}
-    onChange={(e) => {
-      setFromDate(e.target.value);
-      setCurrentPage(1);
-    }}
-    onClick={(e) => e.target.showPicker()}
-    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
-  />
-</div>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
 
-{/* To Date */}
-<div className="flex items-center gap-2">
-  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-    To
-  </label>
+            {/* To Date */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                To
+              </label>
 
-  <input
-    type="date"
-    value={toDate}
-    onChange={(e) => {
-      setToDate(e.target.value);
-      setCurrentPage(1);
-    }}
-    onClick={(e) => e.target.showPicker()}
-    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
-  />
-</div>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
             {/* Filter by bank */}
             <select
               value={filterBank}
@@ -695,17 +695,17 @@ if (searchText !== "") {
                       <td className="px-6 py-4">{row.particular}</td>
                       <td className="px-6 py-4">{row.amount}</td>
                       <td className="px-6 py-4">{row.bank_name}</td>
-                <td className="px-6 py-4">
-  <span
-    className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${
-      row.type === "entry"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-        : "border-rose-200 bg-rose-50 text-rose-600"
-    }`}
-  >
-    {row.type}
-  </span>
-</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                            row.type === "entry"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                              : "border-rose-200 bg-rose-50 text-rose-600"
+                          }`}
+                        >
+                          {row.type}
+                        </span>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {/* EDIT */}

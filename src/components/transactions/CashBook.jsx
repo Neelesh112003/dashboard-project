@@ -25,6 +25,7 @@ const ITEMS_PER_PAGE = 10;
    MAIN COMPONENT
 ========================================================= */
 export default function CashBook() {
+
   /* =========================================================
      STATE
   ========================================================= */
@@ -36,9 +37,10 @@ export default function CashBook() {
     id: null,
     title: "",
   });
+
   // Show / hide transaction form
   const [showForm, setShowForm] = useState(false);
-  //state od editing
+  
   // Edit mode
   const [editingId, setEditingId] = useState(null);
 
@@ -52,11 +54,11 @@ export default function CashBook() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filter values
- const [filters, setFilters] = useState({
-  type: "",
-  fromDate: "",
-  toDate: "",
-});
+  const [filters, setFilters] = useState({
+    type: "",
+    fromDate: "",
+    toDate: "",
+  });
 
   // Form data
   const [formData, setFormData] = useState({
@@ -83,6 +85,7 @@ export default function CashBook() {
       alert(error.response?.data?.message || "Something went wrong");
     }
   };
+
   /* =========================================================
      HANDLE INPUT CHANGE
   ========================================================= */
@@ -260,40 +263,40 @@ export default function CashBook() {
   /* =========================================================
      FILTER TRANSACTIONS
   ========================================================= */
-const filteredTransactions = transactions
-  .filter((transaction) => {
-    // TYPE FILTER
-    if (filters.type && transaction.type !== filters.type) {
-      return false;
-    }
+  const filteredTransactions = transactions
+    .filter((transaction) => {
+      // TYPE FILTER
+      if (filters.type && transaction.type !== filters.type) {
+        return false;
+      }
 
-    // FROM DATE FILTER
-    if (
-      filters.fromDate &&
-      new Date(transaction.date) < new Date(filters.fromDate)
-    ) {
-      return false;
-    }
+      // FROM DATE FILTER
+      if (
+        filters.fromDate &&
+        new Date(transaction.date) < new Date(filters.fromDate)
+      ) {
+        return false;
+      }
 
-    // TO DATE FILTER
-    if (
-      filters.toDate &&
-      new Date(transaction.date) > new Date(filters.toDate)
-    ) {
-      return false;
-    }
+      // TO DATE FILTER
+      if (
+        filters.toDate &&
+        new Date(transaction.date) > new Date(filters.toDate)
+      ) {
+        return false;
+      }
 
-    return true;
-  })
+      return true;
+    })
 
-  // SEARCH FILTER
-  .filter((transaction) => {
-    if (!searchText) return true;
+    // SEARCH FILTER
+    .filter((transaction) => {
+      if (!searchText) return true;
 
-    return Object.values(transaction).some((value) =>
-      String(value).toLowerCase().includes(searchText.toLowerCase()),
-    );
-  });
+      return Object.values(transaction).some((value) =>
+        String(value).toLowerCase().includes(searchText.toLowerCase()),
+      );
+    });
 
   /* =========================================================
      PAGINATION
@@ -323,7 +326,7 @@ const filteredTransactions = transactions
       {/* =====================================================
           TOP BUTTON
       ====================================================== */}
-      <div className="mb-5 flex gap-3">
+      <div className="mb-5 flex gap-3 dark:text-white">
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 rounded-xl bg-[#44a83e] px-5 py-2 text-white"
@@ -333,7 +336,7 @@ const filteredTransactions = transactions
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 dark:text-white">
         {/* =====================================================
             FORM SECTION
         ====================================================== */}
@@ -547,49 +550,49 @@ const filteredTransactions = transactions
               <Filter className="h-3.5 w-3.5" />
               Filter
             </div>
-{/* FROM DATE */}
-<div className="flex items-center gap-2">
-  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-    From
-  </label>
+            {/* FROM DATE */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                From
+              </label>
 
-  <input
-    type="date"
-    value={filters.fromDate}
-    onChange={(e) => {
-      setFilters({
-        ...filters,
-        fromDate: e.target.value,
-      });
+              <input
+                type="date"
+                value={filters.fromDate}
+                onChange={(e) => {
+                  setFilters({
+                    ...filters,
+                    fromDate: e.target.value,
+                  });
 
-      setCurrentPage(1);
-    }}
-    onClick={(e) => e.target.showPicker()}
-    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
-  />
-</div>
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
 
-{/* TO DATE */}
-<div className="flex items-center gap-2">
-  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-    To
-  </label>
+            {/* TO DATE */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                To
+              </label>
 
-  <input
-    type="date"
-    value={filters.toDate}
-    onChange={(e) => {
-      setFilters({
-        ...filters,
-        toDate: e.target.value,
-      });
+              <input
+                type="date"
+                value={filters.toDate}
+                onChange={(e) => {
+                  setFilters({
+                    ...filters,
+                    toDate: e.target.value,
+                  });
 
-      setCurrentPage(1);
-    }}
-    onClick={(e) => e.target.showPicker()}
-    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
-  />
-</div>
+                  setCurrentPage(1);
+                }}
+                onClick={(e) => e.target.showPicker()}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-[#1b2740] dark:bg-[#0d1528]"
+              />
+            </div>
             <select
               value={filters.type}
               onChange={(e) => {
