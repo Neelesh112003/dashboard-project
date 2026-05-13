@@ -155,7 +155,11 @@ export default function HSNGroups() {
       hsn_group_code: formData.groupCode,
       hsn_code: formData.code,
       hsn_group_type: formData.groupType,
+      hsn_group_status:"active",
+      status:"active"
     };
+     
+    
 
     if (editingId) {
       try {
@@ -189,15 +193,18 @@ export default function HSNGroups() {
 
     // Build the new row to add to the table
     try {
+      console.log("response sent to server HSN groups",payload)
       const response = await api.post("/v1/hsn-groups", payload, {
         headers: {
           "Content-Type": "application/json",
         },
       });
+     
 
       console.log(response.data);
 
       showToast(response.data.message || "HSN Group Created");
+
 
       await fetchHsnGroups();
 
