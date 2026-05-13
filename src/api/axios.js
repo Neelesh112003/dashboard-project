@@ -52,7 +52,8 @@ api.interceptors.response.use(
       message.includes("invalid token") ||
       message.includes("token expired")
     ) {
-
+console.log("STATUS:", status);
+console.log("MESSAGE:", message);
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
 
