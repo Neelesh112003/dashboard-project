@@ -340,12 +340,6 @@ export default function QCChecklists() {
               <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                 Checklist Items
               </h3>
-              <button
-                onClick={addItem}
-                className="rounded-xl bg-[#44a83e] px-5 py-2 text-sm font-semibold text-white hover:bg-[#3c9437]"
-              >
-                + Add Item
-              </button>
             </div>
 
             {/* If no items added yet, show a placeholder */}
@@ -462,6 +456,12 @@ export default function QCChecklists() {
             >
               {formValues.id ? "Update Checklist" : "Save Checklist"}
             </button>
+             <button
+                onClick={addItem}
+                className="rounded-xl bg-[#44a83e] px-5 py-2 ml-3 text-sm font-semibold text-white hover:bg-[#3c9437]"
+              >
+                + Add Item
+              </button>
           </div>
         </div>
       )}

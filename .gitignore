@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 api.php
+hsngroup.php
+productgroup.php

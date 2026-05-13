@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import ExportTable from "../ExportTable";
 import DeleteConfirmModal from "../DeleteConfirmModal";
+import { useToast } from "../../context/ToastContext";
 
 /* =========================================================
    CONSTANTS
@@ -28,6 +29,8 @@ const ITEMS_PER_PAGE = 10;
    MAIN COMPONENT
 ========================================================= */
 export default function ManageBanks() {
+  //toast message instance created
+  const {showToast} = useToast();
   /* =========================================================
      NAVIGATION
   ========================================================= */
@@ -76,7 +79,7 @@ export default function ManageBanks() {
   const fetchBanks = async () => {
     try {
       const response = await api.get("/v1/banks/list");
-
+      showToast(response.data.error_msg);
       console.log("response from the server fetchBanks", response.data);
 
       setBanks(response.data.data.data || []);
@@ -136,7 +139,7 @@ export default function ManageBanks() {
       console.log(payload);
 
       const response = await api.put(`/v1/banks/update/${id}`, payload);
-
+ showToast(response.data.error_msg);
       console.log("update banks response", response);
 
       fetchBanks();
@@ -191,6 +194,7 @@ export default function ManageBanks() {
       console.log("data sent to server");
       console.log(payload);
       const response = await api.post("/v1/banks/create", payload);
+       showToast(response.data.error_msg);
       console.log(response);
 
       fetchBanks();
@@ -229,6 +233,7 @@ export default function ManageBanks() {
     try {
       console.log(id);
       const response = await api.delete(`/v1/banks/delete/${id}`);
+       showToast(response.data.error_msg);
       console.log("deleted bank with id ", id, response);
       fetchBanks();
     } catch (error) {
