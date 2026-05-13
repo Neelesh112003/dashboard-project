@@ -30,7 +30,7 @@ const ITEMS_PER_PAGE = 10;
 ========================================================= */
 export default function ManageBanks() {
   //toast message instance created
-  const {showToast} = useToast();
+  const { showToast } = useToast();
   /* =========================================================
      NAVIGATION
   ========================================================= */
@@ -139,7 +139,7 @@ export default function ManageBanks() {
       console.log(payload);
 
       const response = await api.put(`/v1/banks/update/${id}`, payload);
- showToast(response.data.error_msg);
+      showToast(response.data.error_msg);
       console.log("update banks response", response);
 
       fetchBanks();
@@ -194,7 +194,7 @@ export default function ManageBanks() {
       console.log("data sent to server");
       console.log(payload);
       const response = await api.post("/v1/banks/create", payload);
-       showToast(response.data.error_msg);
+      showToast(response.data.error_msg);
       console.log(response);
 
       fetchBanks();
@@ -233,7 +233,7 @@ export default function ManageBanks() {
     try {
       console.log(id);
       const response = await api.delete(`/v1/banks/delete/${id}`);
-       showToast(response.data.error_msg);
+      showToast(response.data.error_msg);
       console.log("deleted bank with id ", id, response);
       fetchBanks();
     } catch (error) {
