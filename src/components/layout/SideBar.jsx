@@ -163,6 +163,7 @@ export default function Sidebar() {
         { name: "Cash Book", href: "/transactions/cash-book" },
         { name: "Bank Book", href: "/transactions/bank-book" },
         { name: "Manage Banks", href: "/transactions/manage-banks" },
+        { name: "Banks Summary", href: "/transactions/bank-summary" },
       ],
     },
   ];

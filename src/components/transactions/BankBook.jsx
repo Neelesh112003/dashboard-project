@@ -17,10 +17,12 @@ import {
   Pencil,
 } from "lucide-react";
 import DeleteConfirmModal from "../DeleteConfirmModal";
+import { useToast } from "../../context/ToastContext";
 // How many rows to show per page
 const ROWS_PER_PAGE = 10;
 
 export default function BankBook() {
+  const {showToast } = useToast()
   // Date filters
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -81,7 +83,7 @@ export default function BankBook() {
           "Content-Type": "application/json",
         },
       });
-
+ showToast(response.data.error_msg);
       console.log("updated transaction", response.data);
 
       await fetchBankBook();
@@ -125,6 +127,7 @@ export default function BankBook() {
   const fetchBanks = async () => {
     try {
       const response = await api.get("/v1/banks/list");
+      
       //
       console.log("banks data fetchBanks", response.data);
 
@@ -139,6 +142,7 @@ export default function BankBook() {
   async function fetchBankBook() {
     try {
       const response = await api.get("/v1/bankbook/list");
+       showToast(response.data.error_msg);
       console.log("response from the server fetchBankBook ", response.data);
       // assuming backend sends:
       // { data: [...] }
@@ -179,7 +183,7 @@ export default function BankBook() {
           "Content-Type": "application/json",
         },
       });
-
+ showToast(response.data.error_msg);
       console.log("data sent to server", response);
 
       await fetchBankBook();
@@ -205,6 +209,7 @@ export default function BankBook() {
   async function handleDelete(id) {
     try {
       const response = await api.delete(`/v1/bankbook/delete/${id}`);
+       showToast(response.data.error_msg);
       console.log(`row deleted with id : ${id}`);
       console.log(response);
       await fetchBankBook();

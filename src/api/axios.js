@@ -19,8 +19,10 @@ api.interceptors.request.use(
 
     // Attach token
     if (token) {
-     const token_ID = token.split("|")[1]
-     console.log(token_ID)
+      const token_ID = token.split("|")[1];
+
+      console.log(token_ID);
+
       config.headers.Authorization = `Bearer ${token_ID}`;
     }
 
@@ -28,7 +30,7 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // RESPONSE INTERCEPTOR
@@ -37,8 +39,12 @@ api.interceptors.response.use(
 
   (error) => {
     const status = error.response?.status;
-    const message = error.response?.data?.message?.toLowerCase() || "";
-      console.log("API ERROR:", error.response);
+
+    const message =
+      error.response?.data?.message?.toLowerCase() || "";
+
+    console.log("API ERROR:", error.response);
+
     // ONLY logout for actual auth errors
     if (
       status === 401 ||
@@ -46,18 +52,25 @@ api.interceptors.response.use(
       message.includes("invalid token") ||
       message.includes("token expired")
     ) {
-
+console.log("STATUS:", status);
+console.log("MESSAGE:", message);
       localStorage.removeItem("token");
       sessionStorage.removeItem("token");
 
       localStorage.removeItem("user");
       sessionStorage.removeItem("user");
 
-      window.location.pathname = "/login";
+      // Avoid redirect loop
+      if (!window.location.pathname.includes("/login")) {
+
+        alert("Session expired. Please login again.");
+
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

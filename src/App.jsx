@@ -34,7 +34,7 @@ import SupplierSummary from "./components/suppliers/SupplierSummary";
 import GRN from "./components/gate-entry/GRN";
 import StockAllocation from "./components/gate-entry/StockAllocation";
 import GateQC from "./components/gate-entry/GateQC";
-import GateQCReceipt from "./components/gate-entry/GateQCReceipt"
+import GateQCReceipt from "./components/gate-entry/GateQCReceipt";
 
 /* PRODUCTS */
 import ProductList from "./components/products/ProductList";
@@ -86,7 +86,6 @@ import ManageBanks from "./components/transactions/ManageBanks";
 import SupplierPage from "./components/pages/SupplierPage";
 import CustomerPage from "./components/pages/CustomerPage";
 
-
 export default function App() {
   return (
     <SidebarProvider>
@@ -122,7 +121,7 @@ export default function App() {
           <Route path="/customers/summary" element={<CustomerSummary />} />
 
           {/* SUPPLIERS */}
-          <Route path="/suppliers/list" element={<SupplierPage/>} />
+          <Route path="/suppliers/list" element={<SupplierPage />} />
           <Route path="/suppliers/purchase-orders" element={<SupplierPO />} />
           <Route path="/suppliers/purchases" element={<Purchases />} />
           <Route
@@ -138,10 +137,7 @@ export default function App() {
             element={<StockAllocation />}
           />
           <Route path="/gate-entry/quality-control" element={<GateQC />} />
-          <Route
-  path="/qc-receipt"
-  element={<GateQCReceipt />}
-/>
+          <Route path="/qc-receipt" element={<GateQCReceipt />} />
 
           {/* PRODUCTS */}
           <Route path="/products/list" element={<ProductList />} />
@@ -194,8 +190,10 @@ export default function App() {
             path="/quality/checklist-groups"
             element={<QCChecklistgroups />}
           />
-          <Route path="/quality/checklist-receipt" element={<ChecklistReceipt/>}/>
-          
+          <Route
+            path="/quality/checklist-receipt"
+            element={<ChecklistReceipt />}
+          />
 
           {/* LOGS */}
           <Route path="/logs/transactions" element={<Transactions />} />

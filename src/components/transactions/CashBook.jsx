@@ -15,6 +15,7 @@ import {
 import api from "../../api/axios";
 import ExportTable from "../ExportTable";
 import DeleteConfirmModal from "../DeleteConfirmModal";
+import { useToast } from "../../context/ToastContext";
 
 /* =========================================================
    CONSTANTS
@@ -29,7 +30,7 @@ export default function CashBook() {
   /* =========================================================
      STATE
   ========================================================= */
-
+const {showToast} =useToast()
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -74,7 +75,7 @@ export default function CashBook() {
   const fetchCashBook = async () => {
     try {
       const response = await api.get("/v1/cashbook/list");
-
+ showToast(response.data.error_msg);
       console.log("response from the server fetchCashBook", response);
 
       // adjust according to backend response
@@ -112,7 +113,7 @@ export default function CashBook() {
       };
 
       const response = await api.post("/v1/cashbook/create", payload);
-
+ showToast(response.data.error_msg);
       console.log(
         "response from the server after creating cash trasaction",
         response.data,
@@ -142,7 +143,7 @@ export default function CashBook() {
       };
       console.log(id);
       const response = await api.put(`/v1/cashbook/update/${id}`, payload);
-
+ showToast(response.data.error_msg);
       console.log("updated transaction", response.data);
 
       fetchCashBook();
@@ -212,6 +213,7 @@ export default function CashBook() {
   const deleteTransaction = async (id) => {
     try {
       const response = await api.delete(`/v1/cashbook/delete/${id}`);
+       showToast(response.data.error_msg);
       console.log("cash transaction deleted with id ", id, response);
       fetchCashBook();
     } catch (error) {
