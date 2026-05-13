@@ -20,6 +20,8 @@ import StockAllocation from "./components/gate-entry/StockAllocation";
 import GateQC from "./components/gate-entry/GateQC";
 import CustomerForm from "./components/pages/CustomerPage";
 import CustomerPage from "./components/pages/CustomerPage";
+import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 
 /* CUSTOMERS */
 import CustomersList from "./components/customers/CustomersList";
@@ -82,12 +84,40 @@ export default function App() {
   return (
     <SidebarProvider>
       <Routes>
-        {/* AUTH */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/super-admin/login" element={<SuperAdminLogin />} />
-        <Route path="/signup" element={<Register />} />
+        {/* PUBLIC — redirect to / if already logged in */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/super-admin/login"
+          element={
+            <PublicRoute>
+              <SuperAdminLogin />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
 
-        <Route element={<Layout />}>
+        {/* PROTECTED — redirect to /login if not logged in */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/" element={<Overview />} />
 
           <Route path="/manage-admin" element={<ManageAdmins />} />

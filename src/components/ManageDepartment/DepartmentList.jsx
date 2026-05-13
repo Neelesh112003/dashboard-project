@@ -21,16 +21,24 @@ import CreateDepartmentForm from "./CreateDepartmentForm";
 import ViewDepartment from "./ViewDepartment";
 
 const CATEGORY_META = {
-  Engineering:              { color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  icon: Tag        },
-  "Human Resources":        { color: "#10b981", bg: "rgba(16,185,129,0.1)",  icon: Users      },
-  Finance:                  { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  icon: DollarSign },
-  Marketing:                { color: "#ec4899", bg: "rgba(236,72,153,0.1)",  icon: Megaphone  },
-  Operations:               { color: "#6366f1", bg: "rgba(99,102,241,0.1)",  icon: Settings   },
-  Sales:                    { color: "#f97316", bg: "rgba(249,115,22,0.1)",  icon: TrendingUp },
-  "IT & Security":          { color: "#ef4444", bg: "rgba(239,68,68,0.1)",   icon: Shield     },
-  Legal:                    { color: "#6b7280", bg: "rgba(107,114,128,0.1)", icon: Scale      },
-  "Research & Development": { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", icon: Beaker     },
+  Engineering: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", icon: Tag },
+  "Human Resources": { color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: Users },
+  Finance: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: DollarSign },
+  Marketing: { color: "#ec4899", bg: "rgba(236,72,153,0.1)", icon: Megaphone },
+  Operations: { color: "#6366f1", bg: "rgba(99,102,241,0.1)", icon: Settings },
+  Sales: { color: "#f97316", bg: "rgba(249,115,22,0.1)", icon: TrendingUp },
+  "IT & Security": { color: "#ef4444", bg: "rgba(239,68,68,0.1)", icon: Shield },
+  Legal: { color: "#6b7280", bg: "rgba(107,114,128,0.1)", icon: Scale },
+  "Research & Development": { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", icon: Beaker },
 };
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem("token")}`,
+  "Content-Type": "application/json",
+  Accept: "application/json",
+});
 
 export default function DepartmentList() {
   const [departments, setDepartments] = useState([]);
@@ -48,22 +56,41 @@ export default function DepartmentList() {
     status: "",
   });
 
-  const token = localStorage.getItem("token");
-  const authHeader = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
     setError("");
+
     try {
-      const response = await fetch("/v1/auth/departments", {
-        headers: authHeader,
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("Session expired. Please log in again.");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/v1/departments`, {
+        headers: getAuthHeaders(),
       });
-      const data = await response.json();
+
+      const text = await response.text();
+      let data = {};
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError("Unexpected response from server.");
+        return;
+      }
+
       if (!response.ok) {
         setError(data?.message || "Failed to fetch departments.");
         return;
       }
-      setDepartments(Array.isArray(data) ? data : data.data ?? []);
+
+      // API returns: { successvar: 1, data: { current_page, data: [...], ... } }
+      const list = Array.isArray(data?.data?.data) ? data.data.data : [];
+
+      setDepartments(list);
     } catch {
       setError("Network error. Please check your connection.");
     } finally {
@@ -75,22 +102,27 @@ export default function DepartmentList() {
     fetchDepartments();
   }, [fetchDepartments]);
 
-  const handleAdd = (newDept) => {
-    setDepartments((prev) => [newDept, ...prev]);
+  const handleAdd = () => {
+    fetchDepartments();
   };
 
   const handleDelete = async (id) => {
     setDeletingId(id);
+
     try {
-      const response = await fetch(`/v1/auth/departments/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/v1/departments/${id}`, {
         method: "DELETE",
-        headers: authHeader,
+        headers: getAuthHeaders(),
       });
+
       if (!response.ok) {
-        const data = await response.json();
+        const text = await response.text();
+        let data = {};
+        try { data = JSON.parse(text); } catch {}
         setError(data?.message || "Failed to delete department.");
         return;
       }
+
       setDepartments((prev) => prev.filter((d) => d.id !== id));
     } catch {
       setError("Network error. Please check your connection.");
@@ -100,26 +132,32 @@ export default function DepartmentList() {
   };
 
   const handleToggleStatus = async (dept) => {
-    const endpoint =
-      dept.status === "active"
-        ? `/v1/auth/departments/${dept.id}/deactivate`
-        : `/v1/auth/departments/${dept.id}/activate`;
+    const isActive = dept.status === "active";
+    const endpoint = isActive
+      ? `${API_BASE_URL}/v1/departments/${dept.id}/deactivate`
+      : `${API_BASE_URL}/v1/departments/${dept.id}/activate`;
 
     setTogglingId(dept.id);
+
     try {
       const response = await fetch(endpoint, {
         method: "PATCH",
-        headers: authHeader,
+        headers: getAuthHeaders(),
       });
-      const data = await response.json();
+
+      const text = await response.text();
+      let data = {};
+      try { data = JSON.parse(text); } catch {}
+
       if (!response.ok) {
         setError(data?.message || "Failed to update status.");
         return;
       }
+
       setDepartments((prev) =>
         prev.map((d) =>
           d.id === dept.id
-            ? { ...d, status: dept.status === "active" ? "inactive" : "active" }
+            ? { ...d, status: isActive ? "inactive" : "active" }
             : d
         )
       );
@@ -139,14 +177,15 @@ export default function DepartmentList() {
   const isFiltered = Object.values(filters).some(Boolean);
 
   const filtered = useMemo(() => {
+    if (!Array.isArray(departments)) return [];
     return departments.filter((d) => {
-      const name     = filters.name.toLowerCase();
+      const name = filters.name.toLowerCase();
       const category = filters.category.toLowerCase();
-      const head     = filters.head.toLowerCase();
+      const head = filters.head.toLowerCase();
       return (
-        (!name     || (d.name           || "").toLowerCase().includes(name)) &&
-        (!category || (d.category       || "").toLowerCase().includes(category)) &&
-        (!head     || (d.departmentHead || "").toLowerCase().includes(head)) &&
+        (!name || (d.department_name || "").toLowerCase().includes(name)) &&
+        (!category || (d.category || "").toLowerCase().includes(category)) &&
+        (!head || (d.department_head_name || "").toLowerCase().includes(head)) &&
         (!filters.status || d.status === filters.status)
       );
     });
@@ -155,7 +194,6 @@ export default function DepartmentList() {
   return (
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-[#162033] dark:bg-[#0d1528]">
-
         <div
           className="border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
           style={{ backgroundColor: "#3a3c44" }}
@@ -291,7 +329,7 @@ export default function DepartmentList() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#162033]">
-                  {["S.No", "Department", "Category", "Head", "Status", "Actions"].map((h) => (
+                  {["S.No", "Code", "Department", "Category", "Head", "Status", "Actions"].map((h) => (
                     <th
                       key={h}
                       className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"
@@ -304,9 +342,9 @@ export default function DepartmentList() {
 
               <tbody className="divide-y divide-slate-100 dark:divide-[#162033]">
                 {filtered.map((dept, idx) => {
-                  const meta         = CATEGORY_META[dept.category] ?? CATEGORY_META.Engineering;
+                  const meta = CATEGORY_META[dept.category] ?? CATEGORY_META.Engineering;
                   const CategoryIcon = meta.icon;
-                  const isActive     = dept.status === "active";
+                  const isActive = dept.status === "active";
 
                   return (
                     <tr
@@ -315,13 +353,17 @@ export default function DepartmentList() {
                     >
                       <td className="px-5 py-4 text-xs text-slate-400">{idx + 1}</td>
 
+                      <td className="px-5 py-4 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {dept.department_code || "—"}
+                      </td>
+
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3a3c44] text-sm font-bold text-white">
-                            {dept.name?.charAt(0).toUpperCase()}
+                            {dept.department_name?.charAt(0).toUpperCase()}
                           </div>
                           <p className="whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">
-                            {dept.name}
+                            {dept.department_name}
                           </p>
                         </div>
                       </td>
@@ -337,7 +379,7 @@ export default function DepartmentList() {
                       </td>
 
                       <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                        {dept.departmentHead || "—"}
+                        {dept.department_head_name || "—"}
                       </td>
 
                       <td className="px-5 py-4">

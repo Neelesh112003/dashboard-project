@@ -1,30 +1,38 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-export default function TeamLogin({ isSelected, onSubmit }) {
+const API_URL = import.meta.env.VITE_API_URL;
+
+export default function TeamLogin({ isSelected = false, onSubmit }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState({ type: "", text: "" });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess("");
+    setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch("/v1/auth/login", {
+      const response = await fetch(`${API_URL}/v1/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        throw new Error("Invalid JSON response from server");
+      }
 
       if (!response.ok) {
         const msg =
@@ -32,13 +40,22 @@ export default function TeamLogin({ isSelected, onSubmit }) {
           (data?.errors
             ? Object.values(data.errors).flat().join(" ")
             : "Login failed. Please try again.");
-        setError(msg);
-      } else {
-        setSuccess("Login successful!");
-        onSubmit?.(data);
+
+        setMessage({ type: "error", text: msg });
+        return;
       }
+
+      setMessage({
+        type: "success",
+        text: data?.message || "Login successful!",
+      });
+
+      onSubmit?.(data);
     } catch (err) {
-      setError("Network error. Please check your connection.");
+      setMessage({
+        type: "error",
+        text: err.message || "Request failed. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -46,13 +63,13 @@ export default function TeamLogin({ isSelected, onSubmit }) {
 
   return (
     <div
-      className={`w-xl max-w-2xl p-6 rounded-2xl shadow-xl transition-all border bg-[#f5f5f5] ${
+      className={`w-full max-w-2xl rounded-2xl border bg-[#f5f5f5] p-6 shadow-xl transition-all ${
         isSelected
           ? "border-[#44a83e] ring-2 ring-[#44a83e]/20"
           : "border-[#30333e]/30"
       }`}
     >
-      <h3 className="mb-6 text-xl font-bold text-[#30333e] text-center">
+      <h3 className="mb-6 text-center text-xl font-bold text-[#30333e]">
         Enter Team Details
       </h3>
 
@@ -76,6 +93,7 @@ export default function TeamLogin({ isSelected, onSubmit }) {
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Password
           </label>
+
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -86,10 +104,12 @@ export default function TeamLogin({ isSelected, onSubmit }) {
               required
               disabled={loading}
             />
+
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#30333e]/50 transition-colors hover:text-[#30333e]"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -100,24 +120,24 @@ export default function TeamLogin({ isSelected, onSubmit }) {
           </div>
         </div>
 
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-600">
-            {success}
+        {message.text && (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm ${
+              message.type === "error"
+                ? "border-red-200 bg-red-50 text-red-600"
+                : "border-green-200 bg-green-50 text-green-600"
+            }`}
+          >
+            {message.text}
           </div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="mx-auto block rounded-xl bg-[#44a83e] px-8 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#379932] hover:shadow-xl active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="mx-auto block rounded-xl bg-[#44a83e] px-8 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#379932] hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
         >
-          {loading ? "Signing in…" : "Sign In"}
+          {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
     </div>

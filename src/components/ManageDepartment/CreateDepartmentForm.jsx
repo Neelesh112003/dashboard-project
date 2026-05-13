@@ -15,10 +15,11 @@ function Field({ label, required, children, error }) {
 
 export default function CreateDepartmentForm({ onAdd, onClose }) {
   const initialForm = {
-    name: "",
-    workLocation: "",
+    department_code: "",
+    department_name: "",
+    work_location: "",
     category: "",
-    departmentHead: "",
+    department_head_name: "",
     remarks: "",
     status: "active",
   };
@@ -31,11 +32,11 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "Department name is required";
-    else if (form.name.trim().length < 2) e.name = "Min. 2 characters";
-    if (!form.workLocation.trim()) e.workLocation = "Work location is required";
+    if (!form.department_code.trim()) e.department_code = "Department code is required";
+    if (!form.department_name.trim()) e.department_name = "Department name is required";
+    else if (form.department_name.trim().length < 2) e.department_name = "Min. 2 characters";
+    if (!form.work_location.trim()) e.work_location = "Work location is required";
     if (!form.category) e.category = "Please select a category";
-    if (!form.departmentHead.trim()) e.departmentHead = "Department head is required";
     return e;
   };
 
@@ -51,17 +52,20 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("/v1/auth/departments/register", {
+      const baseUrl = import.meta.env.VITE_API_URL;
+
+      const response = await fetch(`${baseUrl}/v1/departments/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: form.name,
-          workLocation: form.workLocation,
+          department_code: form.department_code,
+          department_name: form.department_name,
+          work_location: form.work_location,
           category: form.category,
-          departmentHead: form.departmentHead,
+          department_head_name: form.department_head_name,
           remarks: form.remarks,
           status: form.status,
         }),
@@ -72,7 +76,9 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
       if (!response.ok) {
         const msg =
           data?.message ||
-          (data?.errors
+          (data?.validatorerror
+            ? Object.values(data.validatorerror).flat().join(" ")
+            : data?.errors
             ? Object.values(data.errors).flat().join(" ")
             : "Failed to create department.");
         setApiError(msg);
@@ -157,29 +163,42 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
               </p>
 
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <Field label="Department Name" required error={errors.name}>
+                <Field label="Department Code" required error={errors.department_code}>
                   <input
                     type="text"
-                    placeholder="Enter department name"
-                    value={form.name}
+                    placeholder="e.g. DPT-001"
+                    value={form.department_code}
                     onChange={(e) => {
-                      setForm({ ...form, name: e.target.value });
-                      setErrors({ ...errors, name: "" });
+                      setForm({ ...form, department_code: e.target.value });
+                      setErrors({ ...errors, department_code: "" });
                     }}
-                    className={inp("name")}
+                    className={inp("department_code")}
                   />
                 </Field>
 
-                <Field label="Work Location" required error={errors.workLocation}>
+                <Field label="Department Name" required error={errors.department_name}>
+                  <input
+                    type="text"
+                    placeholder="Enter department name"
+                    value={form.department_name}
+                    onChange={(e) => {
+                      setForm({ ...form, department_name: e.target.value });
+                      setErrors({ ...errors, department_name: "" });
+                    }}
+                    className={inp("department_name")}
+                  />
+                </Field>
+
+                <Field label="Work Location" required error={errors.work_location}>
                   <input
                     type="text"
                     placeholder="Enter work location"
-                    value={form.workLocation}
+                    value={form.work_location}
                     onChange={(e) => {
-                      setForm({ ...form, workLocation: e.target.value });
-                      setErrors({ ...errors, workLocation: "" });
+                      setForm({ ...form, work_location: e.target.value });
+                      setErrors({ ...errors, work_location: "" });
                     }}
-                    className={inp("workLocation")}
+                    className={inp("work_location")}
                   />
                 </Field>
 
@@ -249,16 +268,16 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
               </p>
 
               <div className="grid grid-cols-1 gap-5">
-                <Field label="Department Head" required error={errors.departmentHead}>
+                <Field label="Department Head Name" error={errors.department_head_name}>
                   <input
                     type="text"
                     placeholder="Enter department head name"
-                    value={form.departmentHead}
+                    value={form.department_head_name}
                     onChange={(e) => {
-                      setForm({ ...form, departmentHead: e.target.value });
-                      setErrors({ ...errors, departmentHead: "" });
+                      setForm({ ...form, department_head_name: e.target.value });
+                      setErrors({ ...errors, department_head_name: "" });
                     }}
-                    className={inp("departmentHead")}
+                    className={inp("department_head_name")}
                   />
                 </Field>
 
@@ -280,7 +299,7 @@ export default function CreateDepartmentForm({ onAdd, onClose }) {
           <button
             onClick={handleAdd}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             style={{ backgroundColor: "#44a83e" }}
           >
             <Building2 className="h-4 w-4" />

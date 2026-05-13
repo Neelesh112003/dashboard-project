@@ -38,7 +38,19 @@ export default function SuperAdminPage() {
           </div>
 
           <div className="flex items-center justify-center">
-            <SuperAdminLogin isSelected={true} onSubmit={handleSubmit} />
+            <SuperAdminLogin
+              isSelected={true}
+              onLoginSuccess={(data) => {
+                console.log("Login success:", data);
+
+                localStorage.setItem("token", data.token);
+
+                // optional
+                localStorage.setItem("user", JSON.stringify(data.user));
+
+                window.location.href = "/";
+              }}
+            />
           </div>
 
           <p className="mt-10 text-center text-sm text-[#f5f5f5]/60">

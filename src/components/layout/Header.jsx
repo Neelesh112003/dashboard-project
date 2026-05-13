@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Menu, BellDot, UserPen } from "lucide-react";
+import { Menu, BellDot, UserPen, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
 import { ThemeToggleButton } from "../ThemToggleButton";
 import LoginButton from "../Buttons/LoginButton";
@@ -7,6 +8,28 @@ import LoginButton from "../Buttons/LoginButton";
 export default function Header() {
   const { toggleSidebar, toggleMobileSidebar } = useSidebar();
   const inputRef = useRef(null);
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+  const isLoggedIn = !!token;
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/v1/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch {
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login", { replace: true });
+    }
+  };
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -38,7 +61,6 @@ export default function Header() {
       }}
     >
       <div className="flex items-center justify-between px-4 py-4 lg:px-6">
-        {/* Left — sidebar toggle */}
         <div className="flex items-center gap-3">
           <button
             onClick={handleToggle}
@@ -48,8 +70,7 @@ export default function Header() {
               color: "#f5f5f5",
             }}
             onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                "rgba(245, 245, 245, 0.08)")
+              (e.currentTarget.style.backgroundColor = "rgba(245, 245, 245, 0.08)")
             }
             onMouseLeave={(e) =>
               (e.currentTarget.style.backgroundColor = "transparent")
@@ -60,10 +81,8 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Center — reserved slot */}
         <div className="hidden lg:block" />
 
-        {/* Right — actions */}
         <div className="flex items-center gap-3">
           <ThemeToggleButton />
 
@@ -76,8 +95,7 @@ export default function Header() {
                 color: "#f5f5f5",
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  "rgba(245, 245, 245, 0.08)")
+                (e.currentTarget.style.backgroundColor = "rgba(245, 245, 245, 0.08)")
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
@@ -87,7 +105,28 @@ export default function Header() {
             </span>
           ))}
 
-          <LoginButton />
+          {isLoggedIn ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+              style={{
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                color: "#f87171",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
+              aria-label="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          ) : (
+            <LoginButton />
+          )}
         </div>
       </div>
     </header>

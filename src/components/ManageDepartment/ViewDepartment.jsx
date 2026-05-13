@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { X, Building2, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 export default function ViewDepartment({ department, onClose }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (!department?.id) return;
@@ -12,20 +14,33 @@ export default function ViewDepartment({ department, onClose }) {
     const fetchDetail = async () => {
       setLoading(true);
       setError("");
+
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`/v1/auth/departments/${department.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+
+        const response = await fetch(
+          `${API_BASE_URL}/v1/departments/${department.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          }
+        );
+
         const data = await response.json();
+
         if (!response.ok) {
           setError(data?.message || "Failed to fetch department details.");
           return;
         }
-        setDetail(data);
+
+        // Handle: { successvar: 1, data: { ...dept } } or { successvar: 1, data: { data: {...} } }
+        const dept =
+          data?.data?.data ?? data?.data ?? data;
+
+        setDetail(dept);
       } catch {
         setError("Network error. Please check your connection.");
       } finally {
@@ -34,7 +49,7 @@ export default function ViewDepartment({ department, onClose }) {
     };
 
     fetchDetail();
-  }, [department?.id]);
+  }, [department?.id, API_BASE_URL]);
 
   if (!department) return null;
 
@@ -42,13 +57,39 @@ export default function ViewDepartment({ department, onClose }) {
   const isActive = dept.status === "active";
 
   const fields = [
-    { label: "Department Name", value: dept.name },
-    { label: "Work Location",   value: dept.workLocation },
-    { label: "Category",        value: dept.category },
-    { label: "Department Head", value: dept.departmentHead },
-    { label: "Remarks",         value: dept.remarks },
-    { label: "Status",          value: dept.status },
-    { label: "Created On",      value: dept.createdOn },
+    { label: "Department Code",  value: dept.department_code },
+    { label: "Department Name",  value: dept.department_name },
+    { label: "Work Location",    value: dept.work_location },
+    { label: "Category",         value: dept.category },
+    { label: "Department Head",  value: dept.department_head_name },
+    { label: "Remarks",          value: dept.remarks },
+    { label: "Status",           value: dept.status },
+    {
+      label: "Created By",
+      value: dept.created_by_username
+        ? `${dept.created_by_username} (${dept.created_by_user_type ?? ""})`
+        : null,
+    },
+    {
+      label: "Created On",
+      value: dept.created_at
+        ? new Date(dept.created_at).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : null,
+    },
+    {
+      label: "Last Updated",
+      value: dept.updated_at
+        ? new Date(dept.updated_at).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : null,
+    },
   ];
 
   return (
@@ -61,6 +102,7 @@ export default function ViewDepartment({ department, onClose }) {
         className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#0d1528]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-5"
           style={{ backgroundColor: "#44a83e" }}
@@ -70,12 +112,14 @@ export default function ViewDepartment({ department, onClose }) {
               className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold text-white"
               style={{ backgroundColor: "rgba(245,245,245,0.15)" }}
             >
-              {dept.name?.charAt(0).toUpperCase()}
+              {dept.department_name?.charAt(0).toUpperCase() ?? "D"}
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">{dept.name}</h3>
+              <h3 className="text-base font-semibold text-white">
+                {dept.department_name ?? "—"}
+              </h3>
               <p className="text-xs" style={{ color: "rgba(245,245,245,0.6)" }}>
-                Department Details
+                {dept.department_code ?? "Department Details"}
               </p>
             </div>
           </div>
@@ -88,6 +132,7 @@ export default function ViewDepartment({ department, onClose }) {
           </button>
         </div>
 
+        {/* Body */}
         <div className="p-6">
           {loading ? (
             <div className="flex items-center justify-center py-10">
@@ -104,7 +149,7 @@ export default function ViewDepartment({ department, onClose }) {
                   key={label}
                   className="flex items-center justify-between gap-4 border-b border-slate-100 py-3 last:border-0 dark:border-[#162033]"
                 >
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     {label}
                   </span>
 
@@ -112,7 +157,9 @@ export default function ViewDepartment({ department, onClose }) {
                     <span
                       className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold"
                       style={{
-                        backgroundColor: isActive ? "rgba(45,110,42,0.1)" : "rgba(239,68,68,0.1)",
+                        backgroundColor: isActive
+                          ? "rgba(45,110,42,0.1)"
+                          : "rgba(239,68,68,0.1)",
                         color: isActive ? "#2d6e2a" : "#ef4444",
                       }}
                     >
