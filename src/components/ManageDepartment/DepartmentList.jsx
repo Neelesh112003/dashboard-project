@@ -34,10 +34,38 @@ const CATEGORY_META = {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-  "Content-Type": "application/json",
-  Accept: "application/json",
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
+const normalizeDepartment = (d) => ({
+  id: d?.id ?? d?.dept_id,
+  dept_id: d?.dept_id ?? d?.id,
+  department_code: d?.department_code ?? "",
+  department_name: d?.department_name ?? "",
+  work_location: d?.work_location ?? "",
+  category: d?.category ?? "",
+  department_status: d?.department_status ?? d?.status ?? "inactive",
+  status: d?.status ?? d?.department_status ?? "inactive",
+  department_head_id: d?.department_head_id ?? null,
+  department_head_username: d?.department_head_username ?? "",
+  department_head_name: d?.department_head_name ?? "",
+  department_info: d?.department_info ?? "",
+  remarks: d?.remarks ?? "",
+  created_at: d?.created_at ?? "",
+  updated_at: d?.updated_at ?? "",
+  admin: d?.admin ?? "",
+  created_by_user_id: d?.created_by_user_id ?? null,
+  created_by_username: d?.created_by_username ?? "",
+  created_by_user_type: d?.created_by_user_type ?? "",
+  updated_by_user_id: d?.updated_by_user_id ?? null,
+  updated_by_username: d?.updated_by_username ?? "",
+  updated_by_user_type: d?.updated_by_user_type ?? "",
 });
 
 export default function DepartmentList() {
@@ -61,13 +89,6 @@ export default function DepartmentList() {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setError("Session expired. Please log in again.");
-        return;
-      }
-
       const response = await fetch(`${API_BASE_URL}/v1/departments`, {
         headers: getAuthHeaders(),
       });
@@ -87,10 +108,15 @@ export default function DepartmentList() {
         return;
       }
 
-      // API returns: { successvar: 1, data: { current_page, data: [...], ... } }
-      const list = Array.isArray(data?.data?.data) ? data.data.data : [];
+      const list = Array.isArray(data?.data?.data)
+        ? data.data.data
+        : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+        ? data
+        : [];
 
-      setDepartments(list);
+      setDepartments(list.map(normalizeDepartment));
     } catch {
       setError("Network error. Please check your connection.");
     } finally {
@@ -102,12 +128,15 @@ export default function DepartmentList() {
     fetchDepartments();
   }, [fetchDepartments]);
 
-  const handleAdd = () => {
-    fetchDepartments();
+  const handleAdd = async () => {
+    await fetchDepartments();
+    setShowCreate(false);
   };
 
   const handleDelete = async (id) => {
+    if (!id) return;
     setDeletingId(id);
+    setError("");
 
     try {
       const response = await fetch(`${API_BASE_URL}/v1/departments/${id}`, {
@@ -118,7 +147,9 @@ export default function DepartmentList() {
       if (!response.ok) {
         const text = await response.text();
         let data = {};
-        try { data = JSON.parse(text); } catch {}
+        try {
+          data = JSON.parse(text);
+        } catch {}
         setError(data?.message || "Failed to delete department.");
         return;
       }
@@ -132,12 +163,14 @@ export default function DepartmentList() {
   };
 
   const handleToggleStatus = async (dept) => {
-    const isActive = dept.status === "active";
+    const currentStatus = dept.department_status ?? dept.status ?? "inactive";
+    const isActive = currentStatus === "active";
     const endpoint = isActive
       ? `${API_BASE_URL}/v1/departments/${dept.id}/deactivate`
       : `${API_BASE_URL}/v1/departments/${dept.id}/activate`;
 
     setTogglingId(dept.id);
+    setError("");
 
     try {
       const response = await fetch(endpoint, {
@@ -147,7 +180,9 @@ export default function DepartmentList() {
 
       const text = await response.text();
       let data = {};
-      try { data = JSON.parse(text); } catch {}
+      try {
+        data = JSON.parse(text);
+      } catch {}
 
       if (!response.ok) {
         setError(data?.message || "Failed to update status.");
@@ -157,7 +192,11 @@ export default function DepartmentList() {
       setDepartments((prev) =>
         prev.map((d) =>
           d.id === dept.id
-            ? { ...d, status: isActive ? "inactive" : "active" }
+            ? {
+                ...d,
+                department_status: isActive ? "inactive" : "active",
+                status: isActive ? "inactive" : "active",
+              }
             : d
         )
       );
@@ -178,15 +217,18 @@ export default function DepartmentList() {
 
   const filtered = useMemo(() => {
     if (!Array.isArray(departments)) return [];
+
     return departments.filter((d) => {
       const name = filters.name.toLowerCase();
       const category = filters.category.toLowerCase();
       const head = filters.head.toLowerCase();
+      const currentStatus = d.department_status ?? d.status ?? "";
+
       return (
         (!name || (d.department_name || "").toLowerCase().includes(name)) &&
         (!category || (d.category || "").toLowerCase().includes(category)) &&
         (!head || (d.department_head_name || "").toLowerCase().includes(head)) &&
-        (!filters.status || d.status === filters.status)
+        (!filters.status || currentStatus === filters.status)
       );
     });
   }, [departments, filters]);
@@ -206,6 +248,7 @@ export default function DepartmentList() {
               >
                 <Building2 className="h-5 w-5" style={{ color: "#f5f5f5" }} />
               </div>
+
               <div>
                 <h2 className="text-lg font-semibold" style={{ color: "#f5f5f5" }}>
                   Department List
@@ -233,42 +276,42 @@ export default function DepartmentList() {
           </div>
         )}
 
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-[#162033] bg-slate-50 dark:bg-[#0f1a2e] flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-37.5">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 dark:border-[#162033] dark:bg-[#0f1a2e]">
+          <div className="relative min-w-37.5 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search by department…"
               value={filters.name}
               onChange={(e) => updateFilter("name", e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-[#1b2740] bg-white dark:bg-[#11182b] text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-[#44a83e] transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-sm text-slate-700 placeholder-slate-400 transition-colors focus:border-[#44a83e] focus:outline-none dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-300"
             />
           </div>
 
-          <div className="flex-1 min-w-35">
+          <div className="min-w-35 flex-1">
             <input
               type="text"
               placeholder="Category…"
               value={filters.category}
               onChange={(e) => updateFilter("category", e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-[#1b2740] bg-white dark:bg-[#11182b] text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-[#44a83e] transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 transition-colors focus:border-[#44a83e] focus:outline-none dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-300"
             />
           </div>
 
-          <div className="flex-1 min-w-35">
+          <div className="min-w-35 flex-1">
             <input
               type="text"
               placeholder="Department head…"
               value={filters.head}
               onChange={(e) => updateFilter("head", e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-[#1b2740] bg-white dark:bg-[#11182b] text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-[#44a83e] transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 transition-colors focus:border-[#44a83e] focus:outline-none dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-300"
             />
           </div>
 
           <select
             value={filters.status}
             onChange={(e) => updateFilter("status", e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-[#1b2740] bg-white dark:bg-[#11182b] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-[#44a83e] transition-colors min-w-30"
+            className="min-w-30 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors focus:border-[#44a83e] focus:outline-none dark:border-[#1b2740] dark:bg-[#11182b] dark:text-slate-300"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -278,15 +321,17 @@ export default function DepartmentList() {
           {isFiltered && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors whitespace-nowrap"
+              className="whitespace-nowrap rounded-lg border border-red-200 px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:hover:bg-red-900/20"
             >
-              <X className="h-3.5 w-3.5" />
-              Reset
+              <span className="flex items-center gap-1.5">
+                <X className="h-3.5 w-3.5" />
+                Reset
+              </span>
             </button>
           )}
 
           {isFiltered && (
-            <span className="text-xs text-slate-400 whitespace-nowrap ml-auto">
+            <span className="ml-auto whitespace-nowrap text-xs text-slate-400">
               Showing {filtered.length} of {departments.length}
             </span>
           )}
@@ -317,26 +362,28 @@ export default function DepartmentList() {
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-            <Search className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-3" />
+          <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+            <Search className="mb-3 h-8 w-8 text-slate-300 dark:text-slate-600" />
             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
               No results found
             </p>
-            <p className="text-xs text-slate-400 mt-1">Try adjusting your filters.</p>
+            <p className="mt-1 text-xs text-slate-400">Try adjusting your filters.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#162033]">
-                  {["S.No", "Code", "Department", "Category", "Head", "Status", "Actions"].map((h) => (
-                    <th
-                      key={h}
-                      className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  {["S.No", "Code", "Department", "Category", "Head", "Status", "Actions"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="whitespace-nowrap px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+                      >
+                        {h}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
 
@@ -344,26 +391,27 @@ export default function DepartmentList() {
                 {filtered.map((dept, idx) => {
                   const meta = CATEGORY_META[dept.category] ?? CATEGORY_META.Engineering;
                   const CategoryIcon = meta.icon;
-                  const isActive = dept.status === "active";
+                  const currentStatus = dept.department_status ?? dept.status ?? "inactive";
+                  const isActive = currentStatus === "active";
 
                   return (
                     <tr
-                      key={dept.id}
+                      key={dept.id ?? dept.dept_id ?? idx}
                       className="transition-colors hover:bg-slate-50 dark:hover:bg-[#11182b]"
                     >
                       <td className="px-5 py-4 text-xs text-slate-400">{idx + 1}</td>
 
-                      <td className="px-5 py-4 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      <td className="whitespace-nowrap px-5 py-4 font-mono text-xs text-slate-500 dark:text-slate-400">
                         {dept.department_code || "—"}
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3a3c44] text-sm font-bold text-white">
-                            {dept.department_name?.charAt(0).toUpperCase()}
+                            {dept.department_name?.charAt(0).toUpperCase() || "D"}
                           </div>
                           <p className="whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100">
-                            {dept.department_name}
+                            {dept.department_name || "—"}
                           </p>
                         </div>
                       </td>
@@ -374,7 +422,7 @@ export default function DepartmentList() {
                           style={{ backgroundColor: meta.bg, color: meta.color }}
                         >
                           <CategoryIcon className="h-3.5 w-3.5" />
-                          {dept.category}
+                          {dept.category || "—"}
                         </span>
                       </td>
 
@@ -388,7 +436,9 @@ export default function DepartmentList() {
                           disabled={togglingId === dept.id}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-75 disabled:opacity-50"
                           style={{
-                            backgroundColor: isActive ? "rgba(45,110,42,0.1)" : "rgba(239,68,68,0.1)",
+                            backgroundColor: isActive
+                              ? "rgba(45,110,42,0.1)"
+                              : "rgba(239,68,68,0.1)",
                             color: isActive ? "#2d6e2a" : "#ef4444",
                           }}
                         >
@@ -410,11 +460,13 @@ export default function DepartmentList() {
                             onClick={() => setSelectedDepartment(dept)}
                             className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:border-[#1b2740] dark:text-slate-300 dark:hover:bg-[#11182b]"
                           >
-                            <Eye className="h-3.5 w-3.5" /> View
+                            <Eye className="h-3.5 w-3.5" />
+                            View
                           </button>
 
                           <button className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-900/40 dark:hover:bg-blue-900/20">
-                            <Pencil className="h-3.5 w-3.5" /> Edit
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
                           </button>
 
                           <button
@@ -437,7 +489,10 @@ export default function DepartmentList() {
       </div>
 
       {showCreate && (
-        <CreateDepartmentForm onAdd={handleAdd} onClose={() => setShowCreate(false)} />
+        <CreateDepartmentForm
+          onAdd={handleAdd}
+          onClose={() => setShowCreate(false)}
+        />
       )}
 
       {selectedDepartment && (

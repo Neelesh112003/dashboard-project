@@ -743,103 +743,105 @@ export default function ProductList() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              {visibleColumns.productId && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  ID
-                </th>
-              )}
+           <thead>
+  <tr className="border-b border-slate-100">
+    {visibleColumns.productId && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        ID
+      </th>
+    )}
 
-              {visibleColumns.productCode && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Code
-                </th>
-              )}
+    {visibleColumns.productCode && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Code
+      </th>
+    )}
 
-              {visibleColumns.productName && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Name
-                </th>
-              )}
+    {visibleColumns.productName && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Name
+      </th>
+    )}
 
-              {visibleColumns.productHSN && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  HSN
-                </th>
-              )}
+    {visibleColumns.productHSN && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        HSN
+      </th>
+    )}
 
-              {visibleColumns.type && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Type
-                </th>
-              )}
+    {visibleColumns.type && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Type
+      </th>
+    )}
 
-              {visibleColumns.category && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Category
-                </th>
-              )}
+    {visibleColumns.category && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Category
+      </th>
+    )}
 
-              {visibleColumns.productType && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Product Type
-                </th>
-              )}
+    {visibleColumns.productType && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Product Type
+      </th>
+    )}
 
-              {visibleColumns.productSubType && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Product Sub Type
-                </th>
-              )}
+    {visibleColumns.productSubType && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Product Sub Type
+      </th>
+    )}
 
-              {visibleColumns.subCategory && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Sub Category
-                </th>
-              )}
+    {visibleColumns.subCategory && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Sub Category
+      </th>
+    )}
 
-              {visibleColumns.mainUnit && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Main Unit
-                </th>
-              )}
+    {visibleColumns.mainUnit && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Main Unit
+      </th>
+    )}
 
-              {visibleColumns.subUnit && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Sub Unit
-                </th>
-              )}
+    {visibleColumns.subUnit && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Sub Unit
+      </th>
+    )}
 
-              {visibleColumns.salesRate && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Sales Rate
-                </th>
-              )}
+    {visibleColumns.salesRate && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Sales Rate
+      </th>
+    )}
 
-              {visibleColumns.purchaseRate && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Purchase Rate
-                </th>
-              )}
+    {visibleColumns.purchaseRate && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Purchase Rate
+      </th>
+    )}
 
-              {visibleColumns.productStatus && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Status
-                </th>
-              )}
+    {visibleColumns.productStatus && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Status
+      </th>
+    )}
 
-              {visibleColumns.productGroupName && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Group
-                </th>
-              )}
+    {visibleColumns.productGroupName && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Group
+      </th>
+    )}
 
-              {visibleColumns.actions && (
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Actions
-                </th>
-              )}
-            </thead>
+    {visibleColumns.actions && (
+      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Actions
+      </th>
+    )}
+  </tr>
+</thead>
 
             <tbody className="divide-y divide-slate-100">
               {/* Show message if no rows match */}

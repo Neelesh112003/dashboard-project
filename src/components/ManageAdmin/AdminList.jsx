@@ -90,13 +90,11 @@ export default function AdminList() {
       const data = await parseJsonSafe(res);
       if (!res.ok) throw new Error(data?.message || "Failed to fetch users.");
 
-      // Handle paginated: { successvar:1, data: { data: [...] } }
       const allUsers =
         Array.isArray(data?.data?.data) ? data.data.data :
         Array.isArray(data?.data)       ? data.data :
         Array.isArray(data)             ? data : [];
 
-      // Show ALL users — type filtering happens in the UI dropdown
       setAdmins(allUsers);
     } catch (err) {
       if (err.name === "AbortError") return;
@@ -115,6 +113,17 @@ export default function AdminList() {
   const handleAdd = () => {
     const controller = new AbortController();
     fetchAdmins(controller.signal);
+  };
+
+  // Called by ViewAdmin once it has fetched full user details.
+  // Merges the rich detail back into the list row so contact/department etc. show up.
+  const handleEnrich = (fullUser) => {
+    if (!fullUser?.id) return;
+    setAdmins((prev) =>
+      prev.map((a) => (a.id === fullUser.id ? { ...a, ...fullUser } : a))
+    );
+    // Keep the viewAdmin panel in sync with the enriched data too
+    setViewAdmin((prev) => (prev?.id === fullUser.id ? { ...prev, ...fullUser } : prev));
   };
 
   const handleDelete = async (id) => {
@@ -203,6 +212,7 @@ export default function AdminList() {
   return (
     <>
       <div className="rounded-2xl border border-slate-200 dark:border-[#162033] bg-white dark:bg-[#0d1528] overflow-hidden shadow-sm">
+        {/* Header */}
         <div
           className="px-6 py-5 border-b border-slate-200 dark:border-[#162033]"
           style={{ backgroundColor: "#3a3c44" }}
@@ -242,6 +252,7 @@ export default function AdminList() {
           </div>
         )}
 
+        {/* Filters */}
         <div className="px-6 py-4 border-b border-slate-200 dark:border-[#162033] bg-slate-50 dark:bg-[#0f1a2e] flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-37.5">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
@@ -324,6 +335,7 @@ export default function AdminList() {
           )}
         </div>
 
+        {/* Table body */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#44a83e]" />
@@ -399,12 +411,18 @@ export default function AdminList() {
                         </div>
                       </td>
 
+                      {/* Contact — visible once row is enriched via ViewAdmin */}
                       <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        {admin.contact || "—"}
+                        {admin.contact || (
+                          <span className="text-slate-300 dark:text-slate-600 italic text-xs">—</span>
+                        )}
                       </td>
 
+                      {/* Department — same */}
                       <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                        {admin.department_name || "—"}
+                        {admin.department_name || (
+                          <span className="text-slate-300 dark:text-slate-600 italic text-xs">—</span>
+                        )}
                       </td>
 
                       <td className="px-5 py-4">
@@ -470,7 +488,13 @@ export default function AdminList() {
         )}
       </div>
 
-      {viewAdmin && <ViewAdmin admin={viewAdmin} onClose={() => setViewAdmin(null)} />}
+      {viewAdmin && (
+        <ViewAdmin
+          admin={viewAdmin}
+          onClose={() => setViewAdmin(null)}
+          onEnrich={handleEnrich}
+        />
+      )}
       {showCreate && <AddAdminForm onAdd={handleAdd} onClose={() => setShowCreate(false)} />}
     </>
   );

@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 
+api.php
+hsngroup.php
+productgroup.php

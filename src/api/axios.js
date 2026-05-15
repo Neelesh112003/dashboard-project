@@ -1,5 +1,5 @@
 import axios from "axios";
- 
+
 const api = axios.create({
   baseURL: "https://tektronics.businesssamadhan.in/api",
   headers: {
@@ -7,41 +7,70 @@ const api = axios.create({
     Accept: "application/json",
   },
 });
- 
+
+// REQUEST INTERCEPTOR
 api.interceptors.request.use(
   (config) => {
+
+    // Get token from storage
     const token =
       localStorage.getItem("token") ||
       sessionStorage.getItem("token");
- 
+
+    // Attach token
     if (token) {
-     const token_ID = token.split("|")[1]
-     console.log(token_ID)
+      const token_ID = token.split("|")[1];
+
+      console.log(token_ID);
+
       config.headers.Authorization = `Bearer ${token_ID}`;
     }
- 
+
+    console.log("TOKEN SENT:", token);
+
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
- 
+
+// RESPONSE INTERCEPTOR
 api.interceptors.response.use(
   (response) => response,
+
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    const message =
+      error.response?.data?.message?.toLowerCase() || "";
+
+    console.log("API ERROR:", error.response);
+
+    // ONLY logout for actual auth errors
+    if (
+      status === 401 ||
+      message.includes("unauthenticated") ||
+      message.includes("invalid token") ||
+      message.includes("token expired")
+    ) {
+console.log("STATUS:", status);
+console.log("MESSAGE:", message);
       localStorage.removeItem("token");
-      localStorage.removeItem("user");
       sessionStorage.removeItem("token");
- 
-      // Avoid redirect loop if we're already on /login
+
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("user");
+
+      // Avoid redirect loop
       if (!window.location.pathname.includes("/login")) {
+
         alert("Session expired. Please login again.");
+
         window.location.href = "/login";
       }
     }
- 
+
     return Promise.reject(error);
-  }
+  },
 );
- 
+
 export default api;

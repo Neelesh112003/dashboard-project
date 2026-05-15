@@ -9,7 +9,7 @@ const ROLE_META = {
   user:        { color: "#2d6e2a", bg: "rgba(45,110,42,0.1)", icon: Briefcase,   label: "User"        },
 };
 
-export default function ViewAdmin({ admin, onClose }) {
+export default function ViewAdmin({ admin, onClose, onEnrich }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,6 +42,9 @@ export default function ViewAdmin({ admin, onClose }) {
         // Handle: { successvar:1, data: { data: {...} } } or { successvar:1, data: {...} }
         const user = data?.data?.data ?? data?.data ?? data;
         setDetail(user);
+
+        // ✅ Push full details back up to AdminList so the row gets enriched
+        onEnrich?.(user);
       } catch (err) {
         if (err.name === "AbortError") return;
         setError(err.message || "Network error. Please check your connection.");
@@ -58,23 +61,22 @@ export default function ViewAdmin({ admin, onClose }) {
 
   const d = detail ?? admin;
   const isActive = d.status === "active";
-  // user_type is the schema column name
   const meta = ROLE_META[d.user_type] ?? ROLE_META.admin;
   const RoleIcon = meta.icon;
 
   const fields = [
-    { label: "Full Name",    value: d.name },
-    { label: "Email",        value: d.email },
-    { label: "Username",     value: d.username },
-    { label: "Contact",      value: d.contact },
-    { label: "Department",   value: d.department_name },
-    { label: "Designation",  value: d.designation },
-    { label: "City",         value: d.city },
-    { label: "State",        value: d.state },
-    { label: "Country",      value: d.country },
-    { label: "Remarks",      value: d.remarks },
-    { label: "Type",         value: d.user_type },
-    { label: "Status",       value: d.status },
+    { label: "Full Name",   value: d.name },
+    { label: "Email",       value: d.email },
+    { label: "Username",    value: d.username },
+    { label: "Contact",     value: d.contact },
+    { label: "Department",  value: d.department_name },
+    { label: "Designation", value: d.designation },
+    { label: "City",        value: d.city },
+    { label: "State",       value: d.state },
+    { label: "Country",     value: d.country },
+    { label: "Remarks",     value: d.remarks },
+    { label: "Type",        value: d.user_type },
+    { label: "Status",      value: d.status },
     {
       label: "Created By",
       value: d.created_by_username
@@ -180,7 +182,7 @@ export default function ViewAdmin({ admin, onClose }) {
                         {isActive ? "Active" : "Inactive"}
                       </span>
                     ) : (
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200 text-right max-w-[60%] break-words">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200 text-right max-w-[60%] wrap-break-word">
                         {value || "—"}
                       </span>
                     )}

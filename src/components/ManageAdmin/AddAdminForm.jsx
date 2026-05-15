@@ -15,6 +15,54 @@ function Field({ label, required, children, error }) {
   );
 }
 
+// Maps backend field keys → form field keys (add more as your API evolves)
+const FIELD_KEY_MAP = {
+  username: "username",
+  email: "email",
+  name: "name",
+  password: "password",
+  contact: "contact",
+  department_id: "department_id",
+  designation: "designation",
+};
+
+/**
+ * Tries to extract field-level errors from the API response and returns:
+ *   { fieldErrors: { fieldName: "message" }, globalError: "string | null" }
+ */
+function parseApiError(data, httpStatus) {
+  const fieldErrors = {};
+  let globalError = null;
+
+  // Laravel-style validation errors: { errors: { username: ["..."], email: ["..."] } }
+  const errorBag = data?.errors ?? data?.validatorerror ?? null;
+  if (errorBag && typeof errorBag === "object") {
+    Object.entries(errorBag).forEach(([key, messages]) => {
+      const msgs = Array.isArray(messages) ? messages : [String(messages)];
+      const formKey = FIELD_KEY_MAP[key];
+      if (formKey) {
+        fieldErrors[formKey] = msgs[0];
+      } else {
+        // Unknown field — treat as global
+        globalError = (globalError ? globalError + " " : "") + msgs[0];
+      }
+    });
+  }
+
+  // Single message string
+  if (!Object.keys(fieldErrors).length && !globalError) {
+    globalError =
+      data?.message ||
+      (httpStatus === 401
+        ? "Session expired. Please log in again."
+        : httpStatus === 409
+        ? "A conflict occurred. Check if the username or email is already in use."
+        : "Failed to create admin. Please try again.");
+  }
+
+  return { fieldErrors, globalError };
+}
+
 export default function AddAdminForm({ onAdd, onClose }) {
   const initialForm = {
     name: "",
@@ -36,17 +84,18 @@ export default function AddAdminForm({ onAdd, onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState("");
+  const [globalError, setGlobalError] = useState("");
   const [successMsg, setSuccessMsg] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [deptLoading, setDeptLoading] = useState(false);
 
-  const clearFieldError = (field) => setErrors((prev) => ({ ...prev, [field]: "" }));
+  const clearFieldError = (field) =>
+    setErrors((prev) => ({ ...prev, [field]: "" }));
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     clearFieldError(field);
-    setApiError("");
+    setGlobalError("");
   };
 
   useEffect(() => {
@@ -54,33 +103,45 @@ export default function AddAdminForm({ onAdd, onClose }) {
 
     const fetchDepartments = async () => {
       setDeptLoading(true);
-
       try {
         const token = localStorage.getItem("token");
-        if (!token) { setApiError("Session expired. Please log in again."); return; }
+        if (!token) {
+          setGlobalError("Session expired. Please log in again.");
+          return;
+        }
 
         const res = await fetch(`${API_URL}/v1/departments`, {
           method: "GET",
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
           signal: controller.signal,
         });
 
         let data = null;
-        try { data = await res.json(); } catch { throw new Error("Invalid departments response."); }
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error("Invalid departments response.");
+        }
 
         if (!res.ok) throw new Error(data?.message || "Failed to load departments.");
 
-        // Paginated response: { successvar:1, data: { data: [...] } }
         const deptList =
-          Array.isArray(data?.data?.data) ? data.data.data :
-          Array.isArray(data?.data) ? data.data :
-          Array.isArray(data) ? data : [];
+          Array.isArray(data?.data?.data)
+            ? data.data.data
+            : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data)
+            ? data
+            : [];
 
         setDepartments(deptList);
       } catch (error) {
         if (error.name === "AbortError") return;
         setDepartments([]);
-        setApiError(error.message || "Unable to fetch departments.");
+        setGlobalError(error.message || "Unable to fetch departments.");
       } finally {
         if (!controller.signal.aborted) setDeptLoading(false);
       }
@@ -131,27 +192,26 @@ export default function AddAdminForm({ onAdd, onClose }) {
   const resetForm = () => {
     setForm(initialForm);
     setErrors({});
-    setApiError("");
+    setGlobalError("");
     setShowPassword(false);
     setShowConfirm(false);
+    setSuccessMsg(false);
   };
 
   const handleDepartmentChange = (value) => {
-    // Use department_name and department_code from schema
     const dept = departments.find((d) => String(d.id) === value);
-
     setForm((prev) => ({
       ...prev,
       department_id: value,
       department_name: dept?.department_name ?? "",
       department_code: dept?.department_code ?? "",
     }));
-
     clearFieldError("department_id");
-    setApiError("");
+    setGlobalError("");
   };
 
   const handleAdd = async () => {
+    // Client-side validation first
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -159,10 +219,14 @@ export default function AddAdminForm({ onAdd, onClose }) {
     }
 
     const token = localStorage.getItem("token");
-    if (!token) { setApiError("Session expired. Please log in again."); return; }
+    if (!token) {
+      setGlobalError("Session expired. Please log in again.");
+      return;
+    }
 
     setLoading(true);
-    setApiError("");
+    setGlobalError("");
+    setSuccessMsg(false);
 
     try {
       const payload = {
@@ -190,17 +254,32 @@ export default function AddAdminForm({ onAdd, onClose }) {
       });
 
       let data = null;
-      try { data = await response.json(); } catch { throw new Error("Unexpected response from server."); }
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Unexpected response from server.");
+      }
 
       if (!response.ok) {
-        const msg =
-          data?.message ||
-          (data?.validatorerror
-            ? Object.values(data.validatorerror).flat().join(" ")
-            : data?.errors
-            ? Object.values(data.errors).flat().join(" ")
-            : "Failed to create admin.");
-        throw new Error(msg);
+        const { fieldErrors, globalError: gErr } = parseApiError(
+          data,
+          response.status
+        );
+
+        // Merge field-level errors into the form (e.g. "username already taken")
+        if (Object.keys(fieldErrors).length) {
+          setErrors((prev) => ({ ...prev, ...fieldErrors }));
+        }
+
+        // Only show global banner if there's no field-level error to show
+        if (gErr && !Object.keys(fieldErrors).length) {
+          setGlobalError(gErr);
+        } else if (gErr) {
+          // There are field errors AND a global message — show both
+          setGlobalError(gErr);
+        }
+
+        return;
       }
 
       onAdd?.(data);
@@ -212,7 +291,9 @@ export default function AddAdminForm({ onAdd, onClose }) {
         onClose?.();
       }, 1500);
     } catch (error) {
-      setApiError(error.message || "Network error. Please check your connection.");
+      setGlobalError(
+        error.message || "Network error. Please check your connection."
+      );
     } finally {
       setLoading(false);
     }
@@ -220,14 +301,19 @@ export default function AddAdminForm({ onAdd, onClose }) {
 
   const inp = (field) =>
     `w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all bg-slate-50 dark:bg-[#11182b] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 ${
-      errors[field] ? "border-red-500" : "border-slate-200 dark:border-[#1b2740]"
+      errors[field]
+        ? "border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900"
+        : "border-slate-200 dark:border-[#1b2740] focus:border-[#44a83e] focus:ring-2 focus:ring-[#44a83e]/20"
     }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0"
-        style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+        style={{
+          backgroundColor: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(4px)",
+        }}
         onClick={!loading ? onClose : undefined}
       />
 
@@ -259,23 +345,9 @@ export default function AddAdminForm({ onAdd, onClose }) {
           </button>
         </div>
 
+        {/* Scrollable body */}
         <div className="overflow-y-auto flex-1">
           <div className="p-6 space-y-6">
-            {successMsg && (
-              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-400">
-                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                Admin account created successfully.
-              </div>
-            )}
-
-            {apiError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-                {apiError}
-              </div>
-            )}
-
             {/* Personal Information */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100 dark:border-[#162033]">
@@ -310,7 +382,9 @@ export default function AddAdminForm({ onAdd, onClose }) {
                     disabled={deptLoading}
                   >
                     <option value="">
-                      {deptLoading ? "Loading departments..." : "Select department"}
+                      {deptLoading
+                        ? "Loading departments..."
+                        : "Select department"}
                     </option>
                     {departments.map((d) => (
                       <option key={d.id} value={String(d.id)}>
@@ -326,7 +400,10 @@ export default function AddAdminForm({ onAdd, onClose }) {
                     placeholder="Enter 10-digit number"
                     value={form.contact}
                     onChange={(e) =>
-                      handleChange("contact", e.target.value.replace(/[^\d]/g, "").slice(0, 10))
+                      handleChange(
+                        "contact",
+                        e.target.value.replace(/[^\d]/g, "").slice(0, 10)
+                      )
                     }
                     className={inp("contact")}
                     maxLength={10}
@@ -338,7 +415,9 @@ export default function AddAdminForm({ onAdd, onClose }) {
                     type="text"
                     placeholder="Enter designation"
                     value={form.designation}
-                    onChange={(e) => handleChange("designation", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("designation", e.target.value)
+                    }
                     className={inp("designation")}
                   />
                 </Field>
@@ -378,7 +457,9 @@ export default function AddAdminForm({ onAdd, onClose }) {
                       type={showPassword ? "text" : "password"}
                       placeholder="Min. 8 characters"
                       value={form.password}
-                      onChange={(e) => handleChange("password", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("password", e.target.value)
+                      }
                       className={inp("password") + " pr-11"}
                     />
                     <button
@@ -386,18 +467,28 @@ export default function AddAdminForm({ onAdd, onClose }) {
                       onClick={() => setShowPassword((p) => !p)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </Field>
 
-                <Field label="Confirm Password" required error={errors.confirmPassword}>
+                <Field
+                  label="Confirm Password"
+                  required
+                  error={errors.confirmPassword}
+                >
                   <div className="relative">
                     <input
                       type={showConfirm ? "text" : "password"}
                       placeholder="Re-enter password"
                       value={form.confirmPassword}
-                      onChange={(e) => handleChange("confirmPassword", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("confirmPassword", e.target.value)
+                      }
                       className={inp("confirmPassword") + " pr-11"}
                     />
                     <button
@@ -405,7 +496,11 @@ export default function AddAdminForm({ onAdd, onClose }) {
                       onClick={() => setShowConfirm((p) => !p)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     >
-                      {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showConfirm ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </Field>
@@ -432,25 +527,69 @@ export default function AddAdminForm({ onAdd, onClose }) {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-[#162033] flex items-center gap-3 shrink-0">
-          <button
-            onClick={handleAdd}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "#44a83e" }}
-          >
-            <UserPlus className="h-4 w-4" />
-            {loading ? "Creating..." : "Create Admin"}
-          </button>
+        {/* Footer — messages live HERE, just above the action buttons */}
+        <div className="px-6 pt-3 pb-4 border-t border-slate-100 dark:border-[#162033] shrink-0 space-y-3">
+          {/* Success */}
+          {successMsg && (
+            <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+              <svg
+                className="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              Admin account created successfully.
+            </div>
+          )}
 
-          <button
-            onClick={resetForm}
-            disabled={loading}
-            className="rounded-xl border border-slate-200 dark:border-[#1b2740] px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#11182b] transition-all disabled:opacity-60"
-          >
-            Reset
-          </button>
+          {/* Global / network error (not field-specific) */}
+          {globalError && (
+            <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+              <svg
+                className="h-4 w-4 mt-0.5 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              {globalError}
+            </div>
+          )}
+
+          {/* Hint when there are inline field errors after submit */}
+          {!globalError && !successMsg && Object.values(errors).some(Boolean) && (
+            <p className="text-xs text-red-500 pl-1">
+              Please fix the highlighted fields above before submitting.
+            </p>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleAdd}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ backgroundColor: "#44a83e" }}
+            >
+              <UserPlus className="h-4 w-4" />
+              {loading ? "Creating..." : "Create Admin"}
+            </button>
+
+            <button
+              onClick={resetForm}
+              disabled={loading}
+              className="rounded-xl border border-slate-200 dark:border-[#1b2740] px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#11182b] transition-all disabled:opacity-60"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       </div>
     </div>
