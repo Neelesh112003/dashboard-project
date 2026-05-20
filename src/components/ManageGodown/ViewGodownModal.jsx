@@ -8,7 +8,7 @@ import AddSectionModal from "./AddSectionModal";
 import AddFloorModal from "./AddFloorModal";
 import AddRackModal from "./AddRackModal";
 import SpaceGrid from "./SpaceGrid";
-import { sectionApi, floorApi, rackApi, apiErrorMessage } from "./godownApi";
+import { sectionApi, floorApi, rackApi, apiErrorMessage } from "./Godownapi";
 
 // ── Small inline alert ──────────────────────────────────────────────────────
 function InlineAlert({ msg, onClose }) {
@@ -30,7 +30,7 @@ function InlineAlert({ msg, onClose }) {
   );
 }
 
-export default function ViewGodownModal({ godown, onClose, onGodownUpdated }) {
+export default function ViewGodownModal({ godown, onClose }) {
   const godownId = godown.godown_id || godown.id;
 
   // local state mirroring the hierarchy fetched from API
@@ -51,44 +51,59 @@ export default function ViewGodownModal({ godown, onClose, onGodownUpdated }) {
   const [busy, setBusy] = useState({});
   const setBusyKey = (key, val) => setBusy((p) => ({ ...p, [key]: val }));
 
+  // ref to trigger manual refresh without adding fetchSections to effect deps
+  const [refreshKey, setRefreshKey] = useState(0);
+  const triggerRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+
   /* ── Fetch sections (with floors and racks via nested lists) ── */
-  const fetchSections = useCallback(async () => {
-    setLoadingSections(true);
-    const secRes = await sectionApi.list({ godown_id: godownId, per_page: 100 });
-    if (!secRes.ok) {
-      setAlertMsg({ type: "error", text: apiErrorMessage(secRes.errorCode, secRes.message) });
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSections() {
+      setLoadingSections(true);
+
+      const secRes = await sectionApi.list({ godown_id: godownId, per_page: 100 });
+
+      if (cancelled) return;
+
+      if (!secRes.ok) {
+        setAlertMsg({ type: "error", text: apiErrorMessage(secRes.errorCode, secRes.message) });
+        setLoadingSections(false);
+        return;
+      }
+
+      const rawSections = secRes.data?.data ?? secRes.data ?? [];
+
+      const enriched = await Promise.all(
+        rawSections.map(async (sec) => {
+          const secId = sec.section_id || sec.id;
+          const floorRes = await floorApi.list({ godown_id: godownId, section_id: secId, per_page: 100 });
+          const rawFloors = floorRes.ok ? (floorRes.data?.data ?? floorRes.data ?? []) : [];
+
+          const floorsWithRacks = await Promise.all(
+            rawFloors.map(async (fl) => {
+              const floorId = fl.floor_id || fl.id;
+              const rackRes = await rackApi.list({ godown_id: godownId, section_id: secId, floor_id: floorId, per_page: 100 });
+              const rawRacks = rackRes.ok ? (rackRes.data?.data ?? rackRes.data ?? []) : [];
+              return { ...fl, racks: rawRacks };
+            })
+          );
+
+          return { ...sec, floors: floorsWithRacks };
+        })
+      );
+
+      if (cancelled) return;
+
+      setSections(enriched);
       setLoadingSections(false);
-      return;
     }
 
-    const rawSections = secRes.data?.data ?? secRes.data ?? [];
+    loadSections();
 
-    // For each section fetch floors; for each floor fetch racks; for each rack fetch spaces
-    const enriched = await Promise.all(
-      rawSections.map(async (sec) => {
-        const secId = sec.section_id || sec.id;
-        const floorRes = await floorApi.list({ godown_id: godownId, section_id: secId, per_page: 100 });
-        const rawFloors = floorRes.ok ? (floorRes.data?.data ?? floorRes.data ?? []) : [];
-
-        const floorsWithRacks = await Promise.all(
-          rawFloors.map(async (fl) => {
-            const floorId = fl.floor_id || fl.id;
-            const rackRes = await rackApi.list({ godown_id: godownId, section_id: secId, floor_id: floorId, per_page: 100 });
-            const rawRacks = rackRes.ok ? (rackRes.data?.data ?? rackRes.data ?? []) : [];
-            // Spaces are loaded lazily inside SpaceGrid; we store what the API returns
-            return { ...fl, racks: rawRacks };
-          })
-        );
-
-        return { ...sec, floors: floorsWithRacks };
-      })
-    );
-
-    setSections(enriched);
-    setLoadingSections(false);
-  }, [godownId]);
-
-  useEffect(() => { fetchSections(); }, [fetchSections]);
+    return () => { cancelled = true; };
+  }, [godownId, refreshKey]); // refreshKey lets the Refresh button re-run this effect
 
   /* ── Helpers to patch local state without re-fetching everything ── */
   const addSectionLocal = (sec) => setSections((prev) => [...prev, { ...sec, floors: [] }]);
@@ -368,7 +383,7 @@ export default function ViewGodownModal({ godown, onClose, onGodownUpdated }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={fetchSections}
+                    onClick={triggerRefresh}
                     disabled={loadingSections}
                     className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-all hover:bg-slate-50 dark:border-[#1b2740] dark:text-slate-400 dark:hover:bg-[#0d1528]"
                   >

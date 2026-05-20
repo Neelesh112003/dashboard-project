@@ -1,19 +1,30 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function AdminLogin({ isSelected = false, onSubmit }) {
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail]               = useState("");
-  const [password, setPassword]         = useState("");
-  const [loading, setLoading]           = useState(false);
-  const [message, setMessage]           = useState({ type: "", text: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [message, setMessage] = useState({
+    type: "",
+    text: "",
+  });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     setLoading(true);
-    setMessage({ type: "", text: "" });
+    setMessage({
+      type: "",
+      text: "",
+    });
 
     try {
       const response = await fetch(`${API_URL}/v1/auth/login`, {
@@ -22,11 +33,15 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        
-        body: JSON.stringify({ login: email, password }),
+
+        body: JSON.stringify({
+          login: email,
+          password,
+        }),
       });
 
       const rawText = await response.text();
+
       let data = {};
 
       try {
@@ -35,6 +50,9 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
         throw new Error("Invalid JSON response from server");
       }
 
+      console.log("LOGIN RESPONSE:", data);
+
+      // ERROR RESPONSE
       if (!response.ok) {
         const msg =
           data?.message ||
@@ -42,21 +60,54 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
             ? Object.values(data.errors).flat().join(" ")
             : "Login failed. Please try again.");
 
-        setMessage({ type: "error", text: msg });
+        setMessage({
+          type: "error",
+          text: msg,
+        });
+
         return;
       }
 
-      
-      const token = data.token ?? data.access_token ?? "";
-      const user  = data.user  ?? data;
+  
 
+      const responseData = data?.data || {};
+
+      const token =
+        responseData.token ||
+        responseData.access_token ||
+        data?.token ||
+        data?.access_token ||
+        "";
+
+      const user =
+        responseData.user ||
+        data?.user ||
+        {};
+
+      console.log("TOKEN:", token);
+      console.log("USER:", user);
+
+      // SAVE TO LOCAL STORAGE
       localStorage.setItem("token", token);
-      localStorage.setItem("user",  JSON.stringify(user));
+      localStorage.setItem("user", JSON.stringify(user));
 
-      setMessage({ type: "success", text: data?.message || "Login successful!" });
+      // SUCCESS MESSAGE
+      setMessage({
+        type: "success",
+        text: data?.message || "Login successful!",
+      });
+
+      // CALLBACK
       onSubmit?.(data);
 
+      // REDIRECT
+      setTimeout(() => {
+        navigate("/");
+      }, 1000);
+
     } catch (err) {
+      console.error(err);
+
       setMessage({
         type: "error",
         text: err.message || "Request failed. Please try again.",
@@ -79,12 +130,12 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
       </h3>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-
         {/* Email */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Email Address
           </label>
+
           <input
             type="email"
             value={email}
@@ -101,6 +152,7 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Password
           </label>
+
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -111,11 +163,14 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
               required
               disabled={loading}
             />
+
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-[#30333e]/50 transition-colors hover:text-[#30333e]"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={
+                showPassword ? "Hide password" : "Show password"
+              }
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -147,7 +202,6 @@ export default function AdminLogin({ isSelected = false, onSubmit }) {
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
-
       </form>
     </div>
   );

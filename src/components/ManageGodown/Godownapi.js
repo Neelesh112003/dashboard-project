@@ -61,11 +61,11 @@ async function apiFetch(path, options = {}) {
 
     const responseText = await res.text();
 
-    let json = null;
+    let json;
     try {
-      json = responseText ? JSON.parse(responseText) : null;
+      json = responseText ? JSON.parse(responseText) : undefined;
     } catch {
-      json = null;
+      // not valid JSON — json stays undefined, treated as falsy
     }
 
     if (json) {
@@ -155,11 +155,11 @@ export const authApi = {
     })
       .then(async (res) => {
         const text = await res.text();
-        let json = null;
+        let json;
         try {
           json = JSON.parse(text);
         } catch {
-          json = null;
+          // not valid JSON — json stays undefined, treated as falsy
         }
 
         if (!json) {

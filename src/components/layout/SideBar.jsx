@@ -23,7 +23,6 @@ import {
   BookUser,
   ChevronRight,
   X,
-  CircleUserRound,
 } from "lucide-react";
 
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -38,11 +37,8 @@ const sidebarItems = [
   },
   {
     name: "Manage Users",
+    href: "/manage-users",
     icon: Users,
-    children: [
-      { name: "Admin", href: "/manage-admin" },
-      { name: "Team", href: "/manage-team" },
-    ],
   },
   {
     name: "Manage Departments",

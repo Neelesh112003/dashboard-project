@@ -57,6 +57,10 @@ export default function AdminList() {
   const [deletingId, setDeletingId] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
 
+  // refreshKey increments to re-trigger the fetch effect
+  const [refreshKey, setRefreshKey] = useState(0);
+  const triggerRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
   const getToken = () => localStorage.getItem("token");
 
   const getAuthHeaders = () => ({
@@ -69,60 +73,57 @@ export default function AdminList() {
     try { return await response.json(); } catch { return null; }
   };
 
-  const fetchAdmins = useCallback(async (signal) => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const token = getToken();
-      if (!token) {
-        setError("Session expired. Please log in again.");
-        setAdmins([]);
-        return;
-      }
-
-      const res = await fetch(`${API_URL}/v1/users`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-        signal,
-      });
-
-      const data = await parseJsonSafe(res);
-      if (!res.ok) throw new Error(data?.message || "Failed to fetch users.");
-
-      const allUsers =
-        Array.isArray(data?.data?.data) ? data.data.data :
-        Array.isArray(data?.data)       ? data.data :
-        Array.isArray(data)             ? data : [];
-
-      setAdmins(allUsers);
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      setError(err.message || "Network error. Please check your connection.");
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, []);
-
+  /* ── Fetch admins ── */
   useEffect(() => {
     const controller = new AbortController();
-    fetchAdmins(controller.signal);
+    const { signal } = controller;
+
+    async function loadAdmins() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const token = getToken();
+        if (!token) {
+          setError("Session expired. Please log in again.");
+          setAdmins([]);
+          return;
+        }
+
+        const res = await fetch(`${API_URL}/v1/users`, {
+          method: "GET",
+          headers: getAuthHeaders(),
+          signal,
+        });
+
+        const data = await parseJsonSafe(res);
+        if (!res.ok) throw new Error(data?.message || "Failed to fetch users.");
+
+        const allUsers =
+          Array.isArray(data?.data?.data) ? data.data.data :
+          Array.isArray(data?.data)       ? data.data :
+          Array.isArray(data)             ? data : [];
+
+        if (!signal.aborted) setAdmins(allUsers);
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        setError(err.message || "Network error. Please check your connection.");
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    }
+
+    loadAdmins();
     return () => controller.abort();
-  }, [fetchAdmins]);
+  }, [refreshKey]); 
+  
+  const handleAdd = () => triggerRefresh();
 
-  const handleAdd = () => {
-    const controller = new AbortController();
-    fetchAdmins(controller.signal);
-  };
-
-  // Called by ViewAdmin once it has fetched full user details.
-  // Merges the rich detail back into the list row so contact/department etc. show up.
   const handleEnrich = (fullUser) => {
     if (!fullUser?.id) return;
     setAdmins((prev) =>
       prev.map((a) => (a.id === fullUser.id ? { ...a, ...fullUser } : a))
     );
-    // Keep the viewAdmin panel in sync with the enriched data too
     setViewAdmin((prev) => (prev?.id === fullUser.id ? { ...prev, ...fullUser } : prev));
   };
 
@@ -227,7 +228,7 @@ export default function AdminList() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold" style={{ color: "#f5f5f5" }}>
-                  Admin List
+                  Users List
                 </h2>
                 <p className="text-xs" style={{ color: "rgba(245,245,245,0.55)" }}>
                   {admins.length} member{admins.length !== 1 ? "s" : ""} registered
@@ -241,7 +242,7 @@ export default function AdminList() {
               style={{ backgroundColor: "#44a83e", color: "#fff" }}
             >
               <UserPlus className="h-4 w-4" />
-              Create Admin
+              Create User
             </button>
           </div>
         </div>
@@ -369,7 +370,7 @@ export default function AdminList() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#162033]">
-                  {["S.No", "Name", "Contact", "Department", "Type", "Status", "Actions"].map((h) => (
+                  {["S.No", "Name", "Contact", "Designation", "Type", "Status", "Actions"].map((h) => (
                     <th
                       key={h}
                       className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 whitespace-nowrap"
@@ -411,19 +412,21 @@ export default function AdminList() {
                         </div>
                       </td>
 
-                      {/* Contact — visible once row is enriched via ViewAdmin */}
+                      
                       <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {admin.contact || (
                           <span className="text-slate-300 dark:text-slate-600 italic text-xs">—</span>
                         )}
                       </td>
 
-                      {/* Department — same */}
-                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                        {admin.department_name || (
-                          <span className="text-slate-300 dark:text-slate-600 italic text-xs">—</span>
-                        )}
-                      </td>
+                      
+                     <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+  {admin.designation || (
+    <span className="text-slate-300 dark:text-slate-600 italic text-xs">
+      —
+    </span>
+  )}
+</td>
 
                       <td className="px-5 py-4">
                         <span

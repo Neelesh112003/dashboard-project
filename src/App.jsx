@@ -9,7 +9,7 @@ import ManageAdmins from "./components/ManageAdmin";
 import PurchaseOrders from "./components/PurchaseOrders";
 import ManageDepartment from "./components/ManageDepartment";
 import SuperAdminLogin from "./components/SuperAdminLogin";
-import ManageTeam from "./components/ManageTeam";
+
 import ManageGodown from "./components/ManageGodown";
 import ManageInventory from "./components/ManageInventory";
 import SupplierPage from "./components/pages/SupplierPage";
@@ -120,8 +120,7 @@ export default function App() {
         >
           <Route path="/" element={<Overview />} />
 
-          <Route path="/manage-admin" element={<ManageAdmins />} />
-          <Route path="/manage-team" element={<ManageTeam />} />
+          <Route path="/manage-users" element={<ManageAdmins />} />
 
           <Route path="/manage-departments" element={<ManageDepartment />} />
 
