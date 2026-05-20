@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Eye,
-  Trash2,
   Users,
   UserPlus,
   Pencil,
@@ -49,8 +48,10 @@ const initialFilters = {
 
 const getUserType = (u) => u?.user_type || u?.type || "";
 
-/* ─── Delete Confirmation Modal ─── */
-function DeleteConfirmModal({ admin, onConfirm, onCancel, loading }) {
+/* ─── Status Toggle Confirm Modal ─── */
+function ToggleStatusModal({ admin, onConfirm, onCancel, loading }) {
+  const isActive = admin?.status === "active";
+
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <div
@@ -58,35 +59,56 @@ function DeleteConfirmModal({ admin, onConfirm, onCancel, loading }) {
         onClick={!loading ? onCancel : undefined}
       />
       <div className="relative z-10 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-[#0d1528]">
-        <div className="h-1.5 bg-red-500" />
+        <div className={`h-1.5 ${isActive ? "bg-red-500" : "bg-green-500"}`} />
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 shrink-0">
-              <AlertTriangle className="h-6 w-6 text-red-500" />
+            <div
+              className={`flex h-11 w-11 items-center justify-center rounded-xl shrink-0 ${
+                isActive
+                  ? "bg-red-50 dark:bg-red-900/20"
+                  : "bg-green-50 dark:bg-green-900/20"
+              }`}
+            >
+              <AlertTriangle
+                className={`h-6 w-6 ${isActive ? "text-red-500" : "text-green-500"}`}
+              />
             </div>
             <div>
               <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-base">
-                Delete User
+                {isActive ? "Deactivate User" : "Activate User"}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">This action cannot be undone.</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isActive ? "User will lose access immediately." : "User will regain access."}
+              </p>
             </div>
           </div>
 
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            Are you sure you want to permanently delete{" "}
+            Are you sure you want to{" "}
+            <span className={`font-semibold ${isActive ? "text-red-500" : "text-green-600"}`}>
+              {isActive ? "deactivate" : "activate"}
+            </span>{" "}
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               {admin?.name || "this user"}
             </span>
-            ? All associated data will be removed.
+            ?
           </p>
 
           <div className="flex gap-3 pt-1">
             <button
               onClick={onConfirm}
               disabled={loading}
-              className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              className={`flex-1 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                isActive
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
             >
-              {loading ? "Deleting..." : "Yes, Delete"}
+              {loading
+                ? "Updating..."
+                : isActive
+                ? "Yes, Deactivate"
+                : "Yes, Activate"}
             </button>
             <button
               onClick={onCancel}
@@ -106,12 +128,11 @@ export default function AdminList() {
   const [admins, setAdmins] = useState([]);
   const [viewAdmin, setViewAdmin] = useState(null);
   const [editAdmin, setEditAdmin] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [toggleTarget, setToggleTarget] = useState(null); // admin pending status toggle
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -195,53 +216,25 @@ export default function AdminList() {
     );
   };
 
-  /* ── Delete ── */
-  const confirmDelete = (admin) => {
+  /* ── Toggle status (with confirmation) ── */
+  const confirmToggle = (admin) => {
     setError("");
-    setDeleteTarget(admin);
+    setToggleTarget(admin);
   };
 
-  const cancelDelete = () => setDeleteTarget(null);
+  const cancelToggle = () => setToggleTarget(null);
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    const id = deleteTarget.id;
+  const handleToggleStatus = async () => {
+    if (!toggleTarget) return;
 
-    setDeletingId(id);
-    setError("");
-
-    try {
-      const token = getToken();
-      if (!token) throw new Error("Session expired. Please log in again.");
-
-      const res = await fetch(`${API_URL}/v1/users/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-
-      const data = await parseJsonSafe(res);
-      if (!res.ok) throw new Error(data?.message || "Failed to delete user.");
-
-      setAdmins((prev) => prev.filter((a) => a.id !== id));
-      if (viewAdmin?.id === id) setViewAdmin(null);
-      if (editAdmin?.id === id) setEditAdmin(null);
-      setDeleteTarget(null);
-    } catch (err) {
-      setError(err.message || "Network error. Please check your connection.");
-      setDeleteTarget(null);
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  /* ── Toggle status ── */
-  const handleToggleStatus = async (admin) => {
+    const admin = toggleTarget;
     const isActive = admin.status === "active";
     const endpoint = isActive
       ? `${API_URL}/v1/users/${admin.id}/deactivate`
       : `${API_URL}/v1/users/${admin.id}/activate`;
 
     setTogglingId(admin.id);
+    setToggleTarget(null);
     setError("");
 
     try {
@@ -344,7 +337,7 @@ export default function AdminList() {
           </div>
         </div>
 
-      
+        {/* Global error — dismissible */}
         {error && (
           <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 flex items-start justify-between gap-3">
             <span>{error}</span>
@@ -541,7 +534,7 @@ export default function AdminList() {
 
                       <td className="px-5 py-4">
                         <button
-                          onClick={() => handleToggleStatus(admin)}
+                          onClick={() => confirmToggle(admin)}
                           disabled={togglingId === admin.id}
                           title={isActive ? "Click to deactivate" : "Click to activate"}
                           className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-75 disabled:opacity-50"
@@ -581,16 +574,6 @@ export default function AdminList() {
                           >
                             <Pencil className="h-3.5 w-3.5" /> Edit
                           </button>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => confirmDelete(admin)}
-                            disabled={deletingId === admin.id}
-                            className="flex items-center gap-1.5 rounded-lg border border-red-200 dark:border-red-900/40 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors whitespace-nowrap disabled:opacity-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            {deletingId === admin.id ? "Deleting…" : "Delete"}
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -626,12 +609,12 @@ export default function AdminList() {
         />
       )}
 
-      {deleteTarget && (
-        <DeleteConfirmModal
-          admin={deleteTarget}
-          loading={deletingId === deleteTarget.id}
-          onConfirm={handleDelete}
-          onCancel={cancelDelete}
+      {toggleTarget && (
+        <ToggleStatusModal
+          admin={toggleTarget}
+          loading={togglingId === toggleTarget.id}
+          onConfirm={handleToggleStatus}
+          onCancel={cancelToggle}
         />
       )}
     </>
