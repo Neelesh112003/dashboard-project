@@ -1,5 +1,5 @@
 import { CheckCircle, XCircle, MinusCircle, Grid3x3, Plus } from "lucide-react";
-import { rackSpaceApi } from "./godownApi";
+import { rackSpaceApi } from "./Godownapi";
 import AddRackSpaceModal from "./AddRackSpaceModal";
 import { useState } from "react";
 
