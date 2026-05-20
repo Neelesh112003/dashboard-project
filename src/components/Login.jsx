@@ -10,8 +10,11 @@ export default function Login() {
     setSelectedType(type);
   };
 
+  // FIX #1: Redirect to dashboard after successful login
+  // Token + user are already saved to localStorage inside AdminLogin / TeamLogin
   const handleLoginSuccess = (data) => {
     console.log("Login success:", data);
+    window.location.href = "/";
   };
 
   return (
@@ -48,6 +51,7 @@ export default function Login() {
             </p>
           </div>
 
+          {/* Role selector */}
           <div className="mb-10 flex flex-col justify-center gap-4 sm:flex-row">
             <button
               type="button"
@@ -74,11 +78,11 @@ export default function Login() {
             </button>
           </div>
 
+          {/* Login form */}
           <div className="flex items-center justify-center">
             {selectedType === "admin" && (
               <AdminLogin isSelected={true} onSubmit={handleLoginSuccess} />
             )}
-
             {selectedType === "team" && (
               <TeamLogin isSelected={true} onSubmit={handleLoginSuccess} />
             )}

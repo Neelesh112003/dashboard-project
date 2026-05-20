@@ -2,9 +2,7 @@ import { BookUser } from "lucide-react";
 import SuperAdminLogin from "./auth/SuperAdminLogin";
 
 export default function SuperAdminPage() {
-  const handleSubmit = (e) => {
-    e.preventDefault();
-  };
+  // FIX #1: Removed unused handleSubmit — login is handled inside SuperAdminLogin
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f5f5f5] px-3 py-6 sm:px-4 sm:py-10 dark:bg-[#30333e]">
@@ -41,13 +39,10 @@ export default function SuperAdminPage() {
             <SuperAdminLogin
               isSelected={true}
               onLoginSuccess={(data) => {
+                // FIX #2: Removed duplicate token/user saving here —
+                // SuperAdminLogin already saves token + user to localStorage.
+                // Just redirect on success.
                 console.log("Login success:", data);
-
-                localStorage.setItem("token", data.token);
-
-                // optional
-                localStorage.setItem("user", JSON.stringify(data.user));
-
                 window.location.href = "/";
               }}
             />

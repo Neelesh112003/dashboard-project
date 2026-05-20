@@ -6,10 +6,10 @@ export default function SuperAdminLogin({
   onLoginSuccess,
 }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [email, setEmail]               = useState("");
+  const [password, setPassword]         = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [message, setMessage]           = useState({ type: "", text: "" });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -17,6 +17,7 @@ export default function SuperAdminLogin({
     setMessage({ type: "", text: "" });
 
     try {
+    
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/v1/auth/login`,
         {
@@ -25,7 +26,8 @@ export default function SuperAdminLogin({
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ email, password }),
+          
+          body: JSON.stringify({ login: email, password }),
         },
       );
 
@@ -49,15 +51,20 @@ export default function SuperAdminLogin({
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user ?? data));
+      
+      const token = data.token ?? data.access_token ?? "";
+      const user  = data.user  ?? data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user",  JSON.stringify(user));
 
       setMessage({ type: "success", text: "Login successful!" });
       onLoginSuccess?.(data);
+
     } catch (err) {
       setMessage({
         type: "error",
-        text: err.message || "Request failed",
+        text: err.message || "Request failed. Please check your connection.",
       });
     } finally {
       setLoading(false);
@@ -77,6 +84,8 @@ export default function SuperAdminLogin({
       </h3>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
+
+        {/* Email / Username */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Email Address
@@ -92,11 +101,11 @@ export default function SuperAdminLogin({
           />
         </div>
 
+        {/* Password */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Password
           </label>
-
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -107,7 +116,6 @@ export default function SuperAdminLogin({
               required
               disabled={loading}
             />
-
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
@@ -123,6 +131,7 @@ export default function SuperAdminLogin({
           </div>
         </div>
 
+        {/* Message */}
         {message.text && (
           <div
             className={`rounded-xl border px-4 py-3 text-sm ${
@@ -135,6 +144,7 @@ export default function SuperAdminLogin({
           </div>
         )}
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -142,6 +152,7 @@ export default function SuperAdminLogin({
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
+
       </form>
     </div>
   );

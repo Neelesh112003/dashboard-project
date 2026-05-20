@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { X, Grid, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { rackApi, apiErrorMessage } from "./godownApi";
+import { X, Layers, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { floorApi, apiErrorMessage } from "./godownApi";
 
 function Field({ label, required, children, error }) {
   return (
@@ -14,19 +14,19 @@ function Field({ label, required, children, error }) {
   );
 }
 
-const RACK_TYPES = ["Metal", "Wooden", "Plastic", "Heavy Duty", "Light Duty"];
-const RACK_CATEGORIES = ["Standard", "Heavy Duty", "Light Duty", "Premium", "Other"];
+const FLOOR_TYPES = ["General", "Cold Storage", "Dry", "Hazardous"];
+const FLOOR_CATEGORIES = ["Standard", "Premium", "Other"];
 
 const initialForm = {
-  rack_code: "",
-  rack_name: "",
-  rack_type: "",
-  rack_category: "",
-  rack_remarks: "",
+  floor_code: "",
+  floor_name: "",
+  floor_type: "",
+  floor_category: "",
+  floor_remarks: "",
   status: "active",
 };
 
-export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onClose }) {
+export default function AddFloorModal({ godownId, sectionId, onAdd, onClose }) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -40,9 +40,9 @@ export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onCl
 
   const validate = () => {
     const e = {};
-    if (!form.rack_code.trim()) e.rack_code = "Rack code is required";
-    else if (form.rack_code.trim().length < 2) e.rack_code = "Min. 2 characters";
-    if (!form.rack_name.trim()) e.rack_name = "Rack name is required";
+    if (!form.floor_code.trim()) e.floor_code = "Floor code is required";
+    else if (form.floor_code.trim().length < 2) e.floor_code = "Min. 2 characters";
+    if (!form.floor_name.trim()) e.floor_name = "Floor name is required";
     if (!form.status) e.status = "Status is required";
     return e;
   };
@@ -57,29 +57,28 @@ export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onCl
     const payload = {
       godown_id: godownId,
       section_id: sectionId,
-      floor_id: floorId,
-      rack_code: form.rack_code.trim(),
-      rack_name: form.rack_name.trim(),
+      floor_code: form.floor_code.trim(),
+      floor_name: form.floor_name.trim(),
       status: form.status,
-      ...(form.rack_type && { rack_type: form.rack_type }),
-      ...(form.rack_category && { rack_category: form.rack_category }),
-      ...(form.rack_remarks && { rack_remarks: form.rack_remarks }),
+      ...(form.floor_type && { floor_type: form.floor_type }),
+      ...(form.floor_category && { floor_category: form.floor_category }),
+      ...(form.floor_remarks && { floor_remarks: form.floor_remarks }),
     };
 
-    const result = await rackApi.create(payload);
+    const result = await floorApi.create(payload);
     setSubmitting(false);
 
     if (result.ok) {
-      setFormMsg({ type: "success", text: result.message || "Rack created successfully." });
+      setFormMsg({ type: "success", text: result.message || "Floor created successfully." });
       onAdd?.(result.data);
       setTimeout(() => onClose?.(), 1400);
     } else {
       if (result.errorCode === "102") {
         const msg = result.message || "";
         if (msg.toLowerCase().includes("code")) {
-          setErrors((e) => ({ ...e, rack_code: result.message }));
+          setErrors((e) => ({ ...e, floor_code: result.message }));
         } else if (msg.toLowerCase().includes("name")) {
-          setErrors((e) => ({ ...e, rack_name: result.message }));
+          setErrors((e) => ({ ...e, floor_name: result.message }));
         } else {
           setFormMsg({ type: "error", text: result.message });
         }
@@ -107,15 +106,15 @@ export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onCl
       <div className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-[#0d1528]">
         {/* Header */}
         <div
-          className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
+          className="flex items-center gap-3 border-b border-slate-200 px-6 py-5 dark:border-[#162033]"
           style={{ background: "linear-gradient(135deg, #2f3138 0%, #3a3c44 45%, #4b5563 100%)" }}
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-            <Grid className="h-5 w-5 text-white" />
+            <Layers className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-white">Add Rack</h2>
-            <p className="text-xs text-white/60">Create a new rack on this floor</p>
+            <h2 className="text-lg font-semibold text-white">Add Floor</h2>
+            <p className="text-xs text-white/60">Create a new floor level within this section</p>
           </div>
           <button
             type="button"
@@ -131,40 +130,40 @@ export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onCl
         <div className="space-y-5 p-6">
           <div>
             <p className="mb-4 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:border-[#162033]">
-              Rack Information
+              Floor Information
             </p>
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <Field label="Rack Code" required error={errors.rack_code}>
+              <Field label="Floor Code" required error={errors.floor_code}>
                 <input
                   type="text"
-                  placeholder="e.g. RK-01"
-                  value={form.rack_code}
-                  onChange={(e) => set("rack_code", e.target.value)}
-                  className={inp("rack_code")}
+                  placeholder="e.g. FL-G"
+                  value={form.floor_code}
+                  onChange={(e) => set("floor_code", e.target.value)}
+                  className={inp("floor_code")}
                 />
               </Field>
 
-              <Field label="Rack Name" required error={errors.rack_name}>
+              <Field label="Floor Name" required error={errors.floor_name}>
                 <input
                   type="text"
-                  placeholder="e.g. Rack 01"
-                  value={form.rack_name}
-                  onChange={(e) => set("rack_name", e.target.value)}
-                  className={inp("rack_name")}
+                  placeholder="e.g. Ground Floor"
+                  value={form.floor_name}
+                  onChange={(e) => set("floor_name", e.target.value)}
+                  className={inp("floor_name")}
                 />
               </Field>
 
-              <Field label="Type" error={errors.rack_type}>
-                <select value={form.rack_type} onChange={(e) => set("rack_type", e.target.value)} className={inp("rack_type")}>
+              <Field label="Type" error={errors.floor_type}>
+                <select value={form.floor_type} onChange={(e) => set("floor_type", e.target.value)} className={inp("floor_type")}>
                   <option value="">Select type</option>
-                  {RACK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {FLOOR_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Field>
 
-              <Field label="Category" error={errors.rack_category}>
-                <select value={form.rack_category} onChange={(e) => set("rack_category", e.target.value)} className={inp("rack_category")}>
+              <Field label="Category" error={errors.floor_category}>
+                <select value={form.floor_category} onChange={(e) => set("floor_category", e.target.value)} className={inp("floor_category")}>
                   <option value="">Select category</option>
-                  {RACK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {FLOOR_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
 
@@ -176,13 +175,13 @@ export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onCl
               </Field>
 
               <div className="md:col-span-2">
-                <Field label="Remarks" error={errors.rack_remarks}>
+                <Field label="Remarks" error={errors.floor_remarks}>
                   <textarea
                     rows={2}
                     placeholder="Optional remarks..."
-                    value={form.rack_remarks}
-                    onChange={(e) => set("rack_remarks", e.target.value)}
-                    className={`${inp("rack_remarks")} resize-none`}
+                    value={form.floor_remarks}
+                    onChange={(e) => set("floor_remarks", e.target.value)}
+                    className={`${inp("floor_remarks")} resize-none`}
                   />
                 </Field>
               </div>
@@ -214,8 +213,8 @@ export default function AddRackModal({ godownId, sectionId, floorId, onAdd, onCl
             className="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ background: "linear-gradient(135deg, #44a83e 0%, #378f32 50%, #2f7d2b 100%)" }}
           >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Grid className="h-4 w-4" />}
-            {submitting ? "Creating..." : "Add Rack"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            {submitting ? "Creating..." : "Add Floor"}
           </button>
 
           <button

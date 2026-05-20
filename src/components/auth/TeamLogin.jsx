@@ -5,10 +5,10 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export default function TeamLogin({ isSelected = false, onSubmit }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [email, setEmail]               = useState("");
+  const [password, setPassword]         = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [message, setMessage]           = useState({ type: "", text: "" });
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -22,7 +22,8 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        // FIX #1: Backend expects "login" field (not "email")
+        body: JSON.stringify({ login: email, password }),
       });
 
       const rawText = await response.text();
@@ -45,12 +46,20 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
         return;
       }
 
+      // FIX #2: Save token + user to localStorage (was missing in TeamLogin)
+      const token = data.token ?? data.access_token ?? "";
+      const user  = data.user  ?? data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user",  JSON.stringify(user));
+
       setMessage({
         type: "success",
         text: data?.message || "Login successful!",
       });
 
       onSubmit?.(data);
+
     } catch (err) {
       setMessage({
         type: "error",
@@ -74,6 +83,8 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
       </h3>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
+
+        {/* Email */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Email Address
@@ -89,11 +100,11 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
           />
         </div>
 
+        {/* Password */}
         <div>
           <label className="mb-2 block text-sm font-semibold text-[#30333e]">
             Password
           </label>
-
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -104,7 +115,6 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
               required
               disabled={loading}
             />
-
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
@@ -120,6 +130,7 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
           </div>
         </div>
 
+        {/* Message */}
         {message.text && (
           <div
             className={`rounded-xl border px-4 py-3 text-sm ${
@@ -132,6 +143,7 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
           </div>
         )}
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -139,6 +151,7 @@ export default function TeamLogin({ isSelected = false, onSubmit }) {
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>
+
       </form>
     </div>
   );
