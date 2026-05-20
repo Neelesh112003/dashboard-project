@@ -18,13 +18,13 @@ import Purchases from "./components/suppliers/Purchases";
 import GRN from "./components/gate-entry/GRN";
 import StockAllocation from "./components/gate-entry/StockAllocation";
 import GateQC from "./components/gate-entry/GateQC";
-import CustomerForm from "./components/pages/CustomerPage";
+import "./components/pages/CustomerPage";
 import CustomerPage from "./components/pages/CustomerPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 
 /* CUSTOMERS */
-import CustomersList from "./components/customers/CustomersList";
+import "./components/customers/CustomersList";
 import CustomerQuotations from "./components/customers/CustomerQuotations";
 import CustomerPO from "./components/customers/CustomerPO";
 import CustomerInvoicing from "./components/customers/CustomerInvoicing";
@@ -47,7 +47,7 @@ import ProductionStock from "./components/inventory/ProductionStock";
 import RawStock from "./components/inventory/RawStock";
 
 /* GODOWNS */
-import Godowns from "./components/godowns/Godowns";
+import "./components/godowns/Godowns";
 
 /* SMT */
 import SMTStore from "./components/smt/SMTStore";

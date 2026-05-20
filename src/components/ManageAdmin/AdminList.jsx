@@ -9,8 +9,10 @@ import {
   Briefcase,
   Search,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import AddAdminForm from "./AddAdminForm";
+import EditAdminForm from "./EditAdminForm";
 import ViewAdmin from "./ViewAdmin";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -47,18 +49,72 @@ const initialFilters = {
 
 const getUserType = (u) => u?.user_type || u?.type || "";
 
+/* ─── Delete Confirmation Modal ─── */
+function DeleteConfirmModal({ admin, onConfirm, onCancel, loading }) {
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={!loading ? onCancel : undefined}
+      />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-[#0d1528]">
+        <div className="h-1.5 bg-red-500" />
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 shrink-0">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-base">
+                Delete User
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">This action cannot be undone.</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            Are you sure you want to permanently delete{" "}
+            <span className="font-semibold text-slate-800 dark:text-slate-100">
+              {admin?.name || "this user"}
+            </span>
+            ? All associated data will be removed.
+          </p>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors"
+            >
+              {loading ? "Deleting..." : "Yes, Delete"}
+            </button>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              className="flex-1 border border-slate-200 dark:border-[#1b2740] text-slate-600 dark:text-slate-400 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 dark:hover:bg-[#11182b] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminList() {
   const [admins, setAdmins] = useState([]);
   const [viewAdmin, setViewAdmin] = useState(null);
+  const [editAdmin, setEditAdmin] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
-
-  // refreshKey increments to re-trigger the fetch effect
   const [refreshKey, setRefreshKey] = useState(0);
+
   const triggerRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const getToken = () => localStorage.getItem("token");
@@ -73,7 +129,7 @@ export default function AdminList() {
     try { return await response.json(); } catch { return null; }
   };
 
-  /* ── Fetch admins ── */
+  /* ── Fetch users ── */
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -115,21 +171,45 @@ export default function AdminList() {
 
     loadAdmins();
     return () => controller.abort();
-  }, [refreshKey]); 
-  
+  }, [refreshKey]);
+
+  /* ── Handlers ── */
   const handleAdd = () => triggerRefresh();
+
+  const handleUpdate = (updatedUser) => {
+    if (!updatedUser?.id) { triggerRefresh(); return; }
+    setAdmins((prev) =>
+      prev.map((a) => (a.id === updatedUser.id ? { ...a, ...updatedUser } : a))
+    );
+    if (viewAdmin?.id === updatedUser.id)
+      setViewAdmin((prev) => prev ? { ...prev, ...updatedUser } : prev);
+  };
 
   const handleEnrich = (fullUser) => {
     if (!fullUser?.id) return;
     setAdmins((prev) =>
       prev.map((a) => (a.id === fullUser.id ? { ...a, ...fullUser } : a))
     );
-    setViewAdmin((prev) => (prev?.id === fullUser.id ? { ...prev, ...fullUser } : prev));
+    setViewAdmin((prev) =>
+      prev?.id === fullUser.id ? { ...prev, ...fullUser } : prev
+    );
   };
 
-  const handleDelete = async (id) => {
+  /* ── Delete ── */
+  const confirmDelete = (admin) => {
+    setError("");
+    setDeleteTarget(admin);
+  };
+
+  const cancelDelete = () => setDeleteTarget(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+
     setDeletingId(id);
     setError("");
+
     try {
       const token = getToken();
       if (!token) throw new Error("Session expired. Please log in again.");
@@ -144,19 +224,22 @@ export default function AdminList() {
 
       setAdmins((prev) => prev.filter((a) => a.id !== id));
       if (viewAdmin?.id === id) setViewAdmin(null);
+      if (editAdmin?.id === id) setEditAdmin(null);
+      setDeleteTarget(null);
     } catch (err) {
       setError(err.message || "Network error. Please check your connection.");
+      setDeleteTarget(null);
     } finally {
       setDeletingId(null);
     }
   };
 
+  /* ── Toggle status ── */
   const handleToggleStatus = async (admin) => {
-    const nextStatus = admin.status === "active" ? "inactive" : "active";
-    const endpoint =
-      admin.status === "active"
-        ? `${API_URL}/v1/users/${admin.id}/deactivate`
-        : `${API_URL}/v1/users/${admin.id}/activate`;
+    const isActive = admin.status === "active";
+    const endpoint = isActive
+      ? `${API_URL}/v1/users/${admin.id}/deactivate`
+      : `${API_URL}/v1/users/${admin.id}/activate`;
 
     setTogglingId(admin.id);
     setError("");
@@ -165,18 +248,31 @@ export default function AdminList() {
       const token = getToken();
       if (!token) throw new Error("Session expired. Please log in again.");
 
-      const res = await fetch(endpoint, { method: "PATCH", headers: getAuthHeaders() });
-      const data = await parseJsonSafe(res);
-      if (!res.ok) throw new Error(data?.message || "Failed to update status.");
+      const res = await fetch(endpoint, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+      });
 
-      const updatedStatus = data?.data?.status ?? data?.status ?? nextStatus;
+      const data = await parseJsonSafe(res);
+
+      if (!res.ok) {
+        const msg =
+          res.status === 403
+            ? "You don't have permission to change user status. Super Admin access required."
+            : data?.message || "Failed to update status.";
+        throw new Error(msg);
+      }
+
+      const updatedStatus =
+        data?.data?.status ?? data?.status ?? (isActive ? "inactive" : "active");
 
       setAdmins((prev) =>
-        prev.map((a) => a.id === admin.id ? { ...a, status: updatedStatus } : a)
+        prev.map((a) => (a.id === admin.id ? { ...a, status: updatedStatus } : a))
       );
-      if (viewAdmin?.id === admin.id) {
+      if (viewAdmin?.id === admin.id)
         setViewAdmin((prev) => prev ? { ...prev, status: updatedStatus } : prev);
-      }
+      if (editAdmin?.id === admin.id)
+        setEditAdmin((prev) => prev ? { ...prev, status: updatedStatus } : prev);
     } catch (err) {
       setError(err.message || "Network error. Please check your connection.");
     } finally {
@@ -184,6 +280,7 @@ export default function AdminList() {
     }
   };
 
+  /* ── Filters ── */
   const updateFilter = (key, value) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
@@ -237,7 +334,7 @@ export default function AdminList() {
             </div>
 
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={() => { setShowCreate(true); setError(""); }}
               className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
               style={{ backgroundColor: "#44a83e", color: "#fff" }}
             >
@@ -247,9 +344,17 @@ export default function AdminList() {
           </div>
         </div>
 
+      
         {error && (
-          <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-            {error}
+          <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 flex items-start justify-between gap-3">
+            <span>{error}</span>
+            <button
+              onClick={() => setError("")}
+              className="shrink-0 text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors mt-0.5"
+              aria-label="Dismiss error"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         )}
 
@@ -348,15 +453,15 @@ export default function AdminList() {
             </div>
             <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No users yet</p>
             <p className="text-xs text-slate-400 mt-1 mb-4">
-              Click "Create Admin" to add your first account.
+              Click "Create User" to add your first account.
             </p>
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={() => { setShowCreate(true); setError(""); }}
               className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: "#44a83e" }}
             >
               <UserPlus className="h-4 w-4" />
-              Create Admin
+              Create User
             </button>
           </div>
         ) : filtered.length === 0 ? (
@@ -412,21 +517,17 @@ export default function AdminList() {
                         </div>
                       </td>
 
-                      
                       <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {admin.contact || (
                           <span className="text-slate-300 dark:text-slate-600 italic text-xs">—</span>
                         )}
                       </td>
 
-                      
-                     <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-  {admin.designation || (
-    <span className="text-slate-300 dark:text-slate-600 italic text-xs">
-      —
-    </span>
-  )}
-</td>
+                      <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        {admin.designation || (
+                          <span className="text-slate-300 dark:text-slate-600 italic text-xs">—</span>
+                        )}
+                      </td>
 
                       <td className="px-5 py-4">
                         <span
@@ -442,9 +543,12 @@ export default function AdminList() {
                         <button
                           onClick={() => handleToggleStatus(admin)}
                           disabled={togglingId === admin.id}
+                          title={isActive ? "Click to deactivate" : "Click to activate"}
                           className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-75 disabled:opacity-50"
                           style={{
-                            backgroundColor: isActive ? "rgba(45,110,42,0.1)" : "rgba(239,68,68,0.1)",
+                            backgroundColor: isActive
+                              ? "rgba(45,110,42,0.1)"
+                              : "rgba(239,68,68,0.1)",
                             color: isActive ? "#2d6e2a" : "#ef4444",
                           }}
                         >
@@ -452,33 +556,40 @@ export default function AdminList() {
                             className="h-1.5 w-1.5 rounded-full"
                             style={{ backgroundColor: isActive ? "#2d6e2a" : "#ef4444" }}
                           />
-                          {togglingId === admin.id ? "Updating..." : isActive ? "Active" : "Inactive"}
+                          {togglingId === admin.id
+                            ? "Updating…"
+                            : isActive
+                            ? "Active"
+                            : "Inactive"}
                         </button>
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
+                          {/* View */}
                           <button
-                            onClick={() => setViewAdmin(admin)}
+                            onClick={() => { setViewAdmin(admin); setError(""); }}
                             className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-[#1b2740] px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#11182b] transition-colors whitespace-nowrap"
                           >
                             <Eye className="h-3.5 w-3.5" /> View
                           </button>
 
+                          {/* Edit */}
                           <button
-                            type="button"
+                            onClick={() => { setEditAdmin(admin); setError(""); }}
                             className="flex items-center gap-1.5 rounded-lg border border-blue-200 dark:border-blue-900/40 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors whitespace-nowrap"
                           >
                             <Pencil className="h-3.5 w-3.5" /> Edit
                           </button>
 
+                          {/* Delete */}
                           <button
-                            onClick={() => handleDelete(admin.id)}
+                            onClick={() => confirmDelete(admin)}
                             disabled={deletingId === admin.id}
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 dark:border-red-900/40 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors whitespace-nowrap disabled:opacity-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            {deletingId === admin.id ? "Deleting..." : "Delete"}
+                            {deletingId === admin.id ? "Deleting…" : "Delete"}
                           </button>
                         </div>
                       </td>
@@ -491,14 +602,38 @@ export default function AdminList() {
         )}
       </div>
 
+      {/* Modals */}
       {viewAdmin && (
         <ViewAdmin
           admin={viewAdmin}
-          onClose={() => setViewAdmin(null)}
+          onClose={() => { setViewAdmin(null); setError(""); }}
           onEnrich={handleEnrich}
         />
       )}
-      {showCreate && <AddAdminForm onAdd={handleAdd} onClose={() => setShowCreate(false)} />}
+
+      {showCreate && (
+        <AddAdminForm
+          onAdd={handleAdd}
+          onClose={() => { setShowCreate(false); setError(""); }}
+        />
+      )}
+
+      {editAdmin && (
+        <EditAdminForm
+          admin={editAdmin}
+          onUpdate={handleUpdate}
+          onClose={() => { setEditAdmin(null); setError(""); }}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          admin={deleteTarget}
+          loading={deletingId === deleteTarget.id}
+          onConfirm={handleDelete}
+          onCancel={cancelDelete}
+        />
+      )}
     </>
   );
 }

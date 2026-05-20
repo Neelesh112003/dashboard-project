@@ -3,7 +3,6 @@ import { rackSpaceApi } from "./Godownapi";
 import AddRackSpaceModal from "./AddRackSpaceModal";
 import { useState } from "react";
 
-const STATUS_CYCLE = { empty: "occupied", occupied: "reserved", reserved: "empty" };
 const STATUS_LABEL = { empty: "Empty", occupied: "Occupied", reserved: "Reserved" };
 
 function getStatusStyle(status) {

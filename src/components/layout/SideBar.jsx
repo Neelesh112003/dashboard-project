@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useSidebar } from "../../context/SidebarContext";
 import { useState, useEffect } from "react";
 
@@ -173,9 +173,9 @@ const sidebarItems = [
 
 export default function Sidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
+  
 
-  const [openMenu, setOpenMenu] = useState(null);
+  const [, setOpenMenu] = useState(null);
   const { isExpanded, isMobileOpen, closeMobileSidebar } = useSidebar();
   const [openMenus, setOpenMenus] = useState({});
 
@@ -196,6 +196,7 @@ export default function Sidebar() {
       );
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenMenu(activeMenu ? activeMenu.name : null);
   }, [location.pathname]);
 

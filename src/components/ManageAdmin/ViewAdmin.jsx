@@ -221,7 +221,7 @@ export default function ViewAdmin({
                   {item.label}
                 </span>
 
-                <span className="text-sm text-right break-words max-w-[60%] text-slate-700 dark:text-slate-200">
+                <span className="text-sm text-right wrap-break-word max-w-[60%] text-slate-700 dark:text-slate-200">
                   {item.value || "—"}
                 </span>
               </div>
